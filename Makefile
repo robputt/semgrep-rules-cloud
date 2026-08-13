@@ -1,13 +1,14 @@
 SEMGREP ?= ./venv/bin/semgrep
 LANG_DIRS := python javascript typescript java csharp kotlin go dockerfile
 
-.PHONY: help test validate scan stats clean
+.PHONY: help test validate scan scan-dockerfiles stats coverage clean
 
 help:
 	@echo "test      Run the annotated rule tests for every language directory"
 	@echo "validate  Check every rule file parses and has valid metadata"
 	@echo "scan      Scan a target with the whole ruleset: make scan TARGET=../my-app"
 	@echo "stats     Count rules per language and per anti-pattern category"
+	@echo "coverage  Show the language x category matrix and list unwritten gaps"
 
 # `semgrep --test` accepts a single root, so iterate the language directories.
 test:
@@ -45,6 +46,10 @@ stats:
 	@echo "rules per anti-pattern category:"
 	@grep -rh 'cloud-antipattern:' $(LANG_DIRS) \
 		| sed 's/.*cloud-antipattern: *//' | sort | uniq -c | sed 's/^/  /'
+
+PYTHON ?= ./venv/bin/python
+coverage:
+	@$(PYTHON) tools/coverage.py
 
 clean:
 	rm -rf .semgrep_logs

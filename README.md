@@ -34,7 +34,7 @@ make scan-dockerfiles TARGET=../my-app
 
 ## What it finds
 
-70 rules across Python, JavaScript, TypeScript, Java, C#, Kotlin, Go and
+73 rules across Python, JavaScript, TypeScript, Java, C#, Kotlin, Go and
 Dockerfile.
 
 | Language | Rules | Frameworks covered |
@@ -42,11 +42,14 @@ Dockerfile.
 | `python` | 15 | Flask, Django, SQLAlchemy |
 | `dockerfile` | 14 | — |
 | `csharp` | 9 | ASP.NET Core, Kestrel, Hangfire, Serilog |
+| `java` | 9 | Spring |
 | `kotlin` | 8 | Spring, Ktor |
 | `javascript` | 8 | Express (also applies to `.ts`) |
-| `java` | 6 | Spring |
 | `go` | 6 | — |
 | `typescript` | 4 | NestJS, TypeORM |
+
+`make coverage` prints the language x category matrix and lists every
+combination that has no rule yet, so gaps are visible rather than implicit.
 
 The `javascript` rules declare `languages: [javascript, typescript]`, so they
 already apply to `.ts` files. The `typescript` tree holds rules that need TS-only
@@ -98,6 +101,26 @@ dockerfile/lang/lifecycle/shell-form-entrypoint.dockerfile
 The test files are worth reading on their own: each one shows the anti-pattern
 next to the cloud-native alternative.
 
+## Known limitations
+
+**Project-local I/O wrappers are invisible.** These rules match standard library
+and framework APIs. Once a codebase routes file access through its own class, the
+generic rules only fire inside that wrapper, not at the hundreds of call sites
+that use it. Jenkins is the clearest example: config persistence goes
+`XmlFile.write()` -> `new AtomicFileWriter(...)` -> `FileChannelWriter` ->
+`FileChannel.open(...)`. The rules flag `AtomicFileWriter` and
+`FileChannelWriter` where they call the JDK, but `XmlFile` and its callers look
+clean. Semgrep OSS has no cross-file type inference, so it cannot follow the
+subclass chain. The fix is a short project-local rule naming your wrappers; see
+[CONTRIBUTING.md](CONTRIBUTING.md#project-local-io-wrappers).
+
+**Filesystem rules outside Java require a literal path.** The `python`,
+`javascript`, `csharp`, `kotlin` and `go` filesystem rules gate on a path that
+starts with `./`, `/tmp/`, `data/` and similar, which keeps them precise but
+misses computed paths such as `os.path.join(root, "state.json")`. The Java rules
+deliberately do not gate on the path, because JVM code almost always computes it;
+they are `confidence: LOW` as a result.
+
 ## Severity and confidence
 
 `severity` reflects whether the code is already broken in a container:
@@ -122,6 +145,7 @@ semgrep --config python --severity ERROR ../my-app
 make test       # run the annotated rule tests
 make validate   # check rule syntax and metadata
 make stats      # rule counts per language and category
+make coverage   # language x category matrix, lists unwritten gaps
 ```
 
 The Dockerfile rules are a good example of the payoff: a single Dockerfile with

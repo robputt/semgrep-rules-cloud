@@ -1,0 +1,45 @@
+rules:
+  - id: state-serialized-to-local-file
+    pattern-either:
+      - pattern: $PROPS.store($OUT, ...)
+      - pattern: $PROPS.storeToXML($OUT, ...)
+      - pattern: new ObjectOutputStream(new FileOutputStream(...))
+      - pattern: $XSTREAM.toXML($OBJ, new FileWriter(...))
+      - pattern: $XSTREAM.toXML($OBJ, new FileOutputStream(...))
+      - pattern: $MAPPER.writeValue(new File(...), ...)
+      - pattern: $MAPPER.writeValue(new FileOutputStream(...), ...)
+      - pattern: $MARSHALLER.marshal($OBJ, new File(...))
+    message: >-
+      Application state is being serialised to a local file. This is the strongest
+      form of the statefulness problem: the process is now the system of record, so
+      it cannot be replicated (two instances hold divergent state), cannot be
+      restarted without a volume, and cannot be rolled back independently of its
+      data. It also makes deploys risky, because the on-disk format is coupled to
+      the running version. Move the record to a database or object store and keep
+      the process disposable.
+    languages:
+      - java
+    severity: ERROR
+    metadata:
+      category: portability
+      subcategory:
+        - audit
+      cloud-antipattern: statefulness
+      twelve-factor:
+        - iv-backing-services
+        - vi-processes
+      technology:
+        - java
+      confidence: HIGH
+      likelihood: MEDIUM
+      impact: HIGH
+      references:
+        - https://12factor.net/processes
+      license: MIT
+    paths:
+      exclude:
+        - "*/test/*"
+        - "*/tests/*"
+        - "*Test.java"
+        - "*Tests.java"
+        - "*IT.java"

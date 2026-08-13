@@ -1,0 +1,52 @@
+rules:
+  - id: log-to-local-file
+    pattern-either:
+      # java.util.logging
+      - pattern: new FileHandler(...)
+      - pattern: new java.util.logging.FileHandler(...)
+      # Logback and log4j / log4j2, configured programmatically
+      - pattern: new FileAppender(...)
+      - pattern: new RollingFileAppender(...)
+      - pattern: new DailyRollingFileAppender(...)
+      - pattern: $BUILDER.newAppender($NAME, "File")
+      - pattern: $BUILDER.newAppender($NAME, "RollingFile")
+      # Redirecting the process streams to a file defeats stdout collection
+      - pattern: System.setOut(new PrintStream(new File(...), ...))
+      - pattern: System.setOut(new PrintStream(new FileOutputStream(...), ...))
+      - pattern: System.setErr(new PrintStream(new File(...), ...))
+      - pattern: System.setErr(new PrintStream(new FileOutputStream(...), ...))
+    message: >-
+      Logs are written to a file inside the container. Nothing collects them there
+      and they are destroyed with the container, so an incident loses its evidence
+      exactly when you need it. Rotation settings also compete with the platform's
+      own collection, and a wedged rotation can fill the disk and evict the pod.
+      Treat logs as an event stream: write structured records to stdout/stderr and
+      let the platform (Fluent Bit, CloudWatch, Cloud Logging) handle routing,
+      retention and rotation.
+    languages:
+      - java
+    severity: WARNING
+    metadata:
+      category: best-practice
+      subcategory:
+        - audit
+      cloud-antipattern: observability
+      twelve-factor:
+        - xi-logs
+      technology:
+        - java
+        - logback
+        - log4j
+      confidence: HIGH
+      likelihood: HIGH
+      impact: MEDIUM
+      references:
+        - https://12factor.net/logs
+      license: MIT
+    paths:
+      exclude:
+        - "*/test/*"
+        - "*/tests/*"
+        - "*Test.java"
+        - "*Tests.java"
+        - "*IT.java"

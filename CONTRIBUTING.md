@@ -76,6 +76,55 @@ Start from [`template.yaml`](template.yaml).
 - Generic instantiation such as `pkg.New[$K, $V](...)` does not parse in Go
   patterns. Match `pkg.New(...)` instead.
 
+### Project-local I/O wrappers
+
+Rules here match standard library and framework APIs. A codebase that wraps file
+access in its own class defeats them: Semgrep OSS has no cross-file type
+inference, so it cannot know that `AtomicFileWriter extends Writer` and ends up
+calling `FileChannel.open`. The generic rule fires inside the wrapper and nowhere
+else.
+
+Check for this before concluding a codebase is clean:
+
+```sh
+# what does the project use instead of the JDK APIs?
+grep -rlE 'extends (Writer|OutputStream|InputStream)' --include='*.java' .
+```
+
+Then add a repo-local rule naming those types and run it alongside this ruleset:
+
+```yaml
+rules:
+  - id: project-file-io-wrapper
+    pattern-either:
+      - pattern: new AtomicFileWriter(...)
+      - pattern: new FileChannelWriter(...)
+      - pattern: new StreamTaskListener($FILE, ...)
+    message: >-
+      Project-local file I/O wrapper. The generic filesystem rules cannot follow
+      this back to the JDK, so it is matched by name here.
+    languages: [java]
+    severity: WARNING
+    metadata:
+      cloud-antipattern: filesystem
+      confidence: HIGH
+```
+
+On Jenkins core that one rule adds 24 findings the generic rules cannot see,
+including `XmlFile`, the entry point for all of its config persistence.
+
+### Path gating in filesystem rules
+
+Two deliberate approaches are in use, and it matters which you pick:
+
+- Gate on a literal path (`python`, `javascript`, `csharp`, `kotlin`, `go`).
+  Precise and quiet, but blind to computed paths like
+  `os.path.join(root, "state.json")`.
+- Match the write API with no path gate (`java`). Catches computed paths, which is
+  the norm on the JVM, at the cost of firing on legitimate scratch writes. Set
+  `confidence: LOW`, exclude temp-file APIs with `pattern-not-regex`, and add a
+  `paths: exclude:` block for test sources.
+
 ### C# specifics
 
 - `new T(...) { ... }` is the general object-creation pattern: it matches the
@@ -162,6 +211,13 @@ Run:
 ```sh
 make test       # annotated rule tests
 make validate   # rule syntax and metadata
+make coverage   # language x category matrix, lists unwritten gaps
 ```
 
-Both run in CI on every pull request.
+`test` and `validate` run in CI on every pull request.
+
+Annotated tests only prove a rule matches what you wrote for it. They cannot tell
+you a rule is missing, and they cannot tell you a rule is too narrow for real
+code. Before claiming a category is covered for a language, run the rules against
+a large real repository in that language and confirm the findings look like the
+ones you intended.

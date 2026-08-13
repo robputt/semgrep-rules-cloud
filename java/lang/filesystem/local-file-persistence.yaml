@@ -1,0 +1,72 @@
+rules:
+  - id: local-file-persistence
+    patterns:
+      # Unlike the other languages' filesystem rules, this one does not gate on a
+      # literal path. JVM code almost always computes the target
+      # (`new File(getRootDir(), "config.xml")`), so requiring a string literal
+      # would miss the common case.
+      - pattern-either:
+          - pattern: new FileWriter(...)
+          - pattern: new FileOutputStream(...)
+          - pattern: new PrintWriter($TARGET, ...)
+          - pattern: new PrintStream($TARGET, ...)
+          - pattern: Files.write(...)
+          - pattern: Files.writeString(...)
+          - pattern: Files.newBufferedWriter(...)
+          - pattern: Files.newOutputStream(...)
+          - pattern: Files.createFile(...)
+          - pattern: Files.createDirectories(...)
+          - pattern: Files.copy(...)
+          # Channel-level writes, which is what buffered writer wrappers use
+          # underneath.
+          - pattern: Files.newByteChannel(...)
+          - pattern: FileChannel.open(...)
+          - pattern: java.nio.channels.FileChannel.open(...)
+          - pattern: AsynchronousFileChannel.open(...)
+          - pattern: new RandomAccessFile(...)
+          - pattern: FileUtils.writeStringToFile(...)
+          - pattern: FileUtils.writeByteArrayToFile(...)
+          - pattern: FileUtils.copyFile(...)
+          - pattern: FileUtils.forceMkdir(...)
+          - pattern: $FILE.mkdirs()
+          - pattern: $FILE.createNewFile()
+      # Scratch space is legitimate. The matched range covers nested calls, so a
+      # text filter catches `new FileOutputStream(File.createTempFile(...))`.
+      - pattern-not-regex: (createTemp|getTempDir|java\.io\.tmpdir|TemporaryFolder|TempDir)
+    message: >-
+      Writing to the local filesystem. Container disks are neither shared between
+      replicas nor durable across restarts, so state written here is invisible to
+      other instances and is discarded when the pod is rescheduled. This is the
+      pattern that makes an application impossible to scale horizontally: it works
+      perfectly on one node and silently diverges on two. Persist durable state to
+      object storage (S3, GCS, Azure Blob) or a database. If this really is scratch
+      data, allocate it with `Files.createTempFile` / `createTempDirectory` so the
+      intent is explicit, and mount an `emptyDir` volume.
+    languages:
+      - java
+    severity: WARNING
+    metadata:
+      category: portability
+      subcategory:
+        - audit
+      cloud-antipattern: filesystem
+      twelve-factor:
+        - iv-backing-services
+        - vi-processes
+      technology:
+        - java
+      confidence: LOW
+      likelihood: HIGH
+      impact: HIGH
+      references:
+        - https://12factor.net/processes
+      license: MIT
+    paths:
+      exclude:
+        - "*/test/*"
+        - "*/tests/*"
+        - "*/testFixtures/*"
+        - "*Test.java"
+        - "*Tests.java"
+        - "*TestCase.java"
+        - "*IT.java"
