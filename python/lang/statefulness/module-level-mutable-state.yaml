@@ -1,0 +1,56 @@
+rules:
+  - id: module-level-mutable-state
+    patterns:
+      - pattern-either:
+          - pattern: $VAR = {}
+          - pattern: $VAR = []
+          - pattern: $VAR = set()
+          - pattern: $VAR = dict()
+          - pattern: $VAR = list()
+          - pattern: $VAR = collections.defaultdict(...)
+          - pattern: $VAR = defaultdict(...)
+          - pattern: $VAR = collections.deque(...)
+          - pattern: $VAR = deque(...)
+          - pattern: $VAR = collections.OrderedDict(...)
+          - pattern: $VAR = queue.Queue(...)
+          - pattern: $VAR = Queue(...)
+      - pattern-not-inside: |
+          def $F(...):
+            ...
+      - pattern-not-inside: |
+          async def $F(...):
+            ...
+      - pattern-not-inside: |
+          class $C:
+            ...
+      - pattern-not-inside: |
+          if TYPE_CHECKING:
+            ...
+      - metavariable-regex:
+          metavariable: $VAR
+          regex: ^_?[a-z][a-z0-9_]*$
+    message: >-
+      Module-level mutable container `$VAR` holds state inside the process.
+      Every replica gets its own copy and the contents are lost on restart,
+      rescheduling or scale-in, so behaviour depends on which instance serves
+      the request. Move the state to a shared backing service (Redis, the
+      database, a managed queue) and keep the process stateless.
+    languages:
+      - python
+    severity: WARNING
+    metadata:
+      category: portability
+      subcategory:
+        - audit
+      cloud-antipattern: statefulness
+      twelve-factor:
+        - vi-processes
+        - viii-concurrency
+      technology:
+        - python
+      confidence: LOW
+      likelihood: MEDIUM
+      impact: HIGH
+      references:
+        - https://12factor.net/processes
+      license: MIT

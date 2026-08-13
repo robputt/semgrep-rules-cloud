@@ -1,0 +1,39 @@
+rules:
+  - id: unpooled-database-client
+    pattern-either:
+      # Semgrep resolves `const { Client } = require('pg')` back to `pg.Client`.
+      - pattern: new pg.Client(...)
+      - patterns:
+          - pattern: $MYSQL.createConnection(...)
+          - metavariable-regex:
+              metavariable: $MYSQL
+              regex: ^(mysql|mysql2|mysql2/promise)$
+    message: >-
+      A single unpooled database client. One connection serialises every query in
+      this process, and code that opens a client per request pays a full TCP, TLS
+      and auth handshake each time while pushing the database toward its
+      connection limit. Create one `pg.Pool` / `mysql.createPool` per process
+      with an explicit `max`, sized as (database connection limit / expected
+      replica count).
+    languages:
+      - javascript
+      - typescript
+    severity: WARNING
+    metadata:
+      category: performance
+      subcategory:
+        - audit
+      cloud-antipattern: connection-management
+      twelve-factor:
+        - iv-backing-services
+      technology:
+        - javascript
+        - typescript
+        - postgres
+        - mysql
+      confidence: MEDIUM
+      likelihood: MEDIUM
+      impact: HIGH
+      references:
+        - https://node-postgres.com/features/pooling
+      license: MIT

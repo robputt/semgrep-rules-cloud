@@ -1,0 +1,41 @@
+rules:
+  - id: global-statement-mutation
+    patterns:
+      - pattern-either:
+          - pattern: |
+              def $F(...):
+                ...
+                global $VAR
+                ...
+          - pattern: |
+              async def $F(...):
+                ...
+                global $VAR
+                ...
+      - metavariable-regex:
+          metavariable: $VAR
+          regex: ^_?[a-z][a-z0-9_]*$
+    message: >-
+      `$F` rebinds the module-level name `$VAR` via `global`, so request
+      handling mutates in-process state. That state is not shared between
+      replicas and disappears when the process is replaced, which makes results
+      depend on which instance handled the call. Persist the value in a shared
+      store instead, or pass it explicitly through the call chain.
+    languages:
+      - python
+    severity: WARNING
+    metadata:
+      category: portability
+      subcategory:
+        - audit
+      cloud-antipattern: statefulness
+      twelve-factor:
+        - vi-processes
+      technology:
+        - python
+      confidence: MEDIUM
+      likelihood: MEDIUM
+      impact: HIGH
+      references:
+        - https://12factor.net/processes
+      license: MIT

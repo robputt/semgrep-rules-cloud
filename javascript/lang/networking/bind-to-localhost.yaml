@@ -1,0 +1,36 @@
+rules:
+  - id: bind-to-localhost
+    patterns:
+      - pattern-either:
+          - pattern: $SERVER.listen($PORT, $HOST, ...)
+          - pattern: "$SERVER.listen({..., host: $HOST, ...}, ...)"
+      - metavariable-regex:
+          metavariable: $HOST
+          regex: ^['"`](127\.0\.0\.1|localhost|::1)['"`]$
+    message: >-
+      Server binds to $HOST, so it only accepts connections from inside its own
+      network namespace. Kubernetes probes, service traffic and load balancer
+      health checks arrive on the pod or task IP and get connection refused,
+      which usually shows up as a container that never becomes ready. Listen on
+      `0.0.0.0` and control access with network policy or security groups.
+    languages:
+      - javascript
+      - typescript
+    severity: ERROR
+    metadata:
+      category: correctness
+      subcategory:
+        - audit
+      cloud-antipattern: networking
+      twelve-factor:
+        - vii-port-binding
+      technology:
+        - javascript
+        - typescript
+        - node.js
+      confidence: HIGH
+      likelihood: HIGH
+      impact: HIGH
+      references:
+        - https://12factor.net/port-binding
+      license: MIT

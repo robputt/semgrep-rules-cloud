@@ -1,0 +1,47 @@
+rules:
+  - id: missing-db-pool-configuration
+    patterns:
+      - pattern-either:
+          - pattern: sql.Open($DRIVER, $DSN)
+          - pattern: sql.OpenDB($CONNECTOR)
+      - pattern-not-inside: |
+          $DB, $ERR := sql.Open(...)
+          ...
+          $DB.SetMaxOpenConns(...)
+          ...
+      - pattern-not-inside: |
+          $DB, $ERR = sql.Open(...)
+          ...
+          $DB.SetMaxOpenConns(...)
+          ...
+      - pattern-not-inside: |
+          $DB := sql.OpenDB(...)
+          ...
+          $DB.SetMaxOpenConns(...)
+          ...
+    message: >-
+      `sql.Open` returns a pool with `MaxOpenConns` unlimited and `MaxIdleConns`
+      capped at 2. Unlimited means a traffic spike opens connections until the
+      database refuses them; the low idle cap means most queries still pay a fresh
+      handshake. Call `SetMaxOpenConns`, `SetMaxIdleConns` and
+      `SetConnMaxLifetime` on the returned `*sql.DB`, sizing max open as
+      (database connection limit / expected replica count).
+    languages:
+      - go
+    severity: WARNING
+    metadata:
+      category: performance
+      subcategory:
+        - audit
+      cloud-antipattern: connection-management
+      twelve-factor:
+        - iv-backing-services
+      technology:
+        - go
+        - database/sql
+      confidence: MEDIUM
+      likelihood: HIGH
+      impact: HIGH
+      references:
+        - https://pkg.go.dev/database/sql#DB.SetMaxOpenConns
+      license: MIT

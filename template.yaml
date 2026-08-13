@@ -1,0 +1,33 @@
+rules:
+  - id: rule-id-matching-filename
+    # Use `patterns` / `pattern-either` to keep rules precise. Prefer syntactic
+    # patterns over `pattern-regex` unless you are matching opaque strings such
+    # as connection URLs.
+    patterns:
+      - pattern: dangerous_local_state(...)
+    message: >-
+      Short statement of the anti-pattern, why it breaks in a horizontally
+      scaled / ephemeral environment, and the cloud-native alternative.
+      Mention the concrete replacement (Redis, S3, a managed queue, env vars).
+    languages:
+      - python
+    severity: WARNING
+    metadata:
+      category: portability
+      subcategory:
+        - audit
+      # One of: statefulness | caching | connection-management | configuration
+      #         secrets | filesystem | scheduling | lifecycle | networking
+      #         observability | resilience
+      cloud-antipattern: statefulness
+      # Relevant https://12factor.net factor(s), if any.
+      twelve-factor:
+        - vi-processes
+      technology:
+        - python
+      confidence: MEDIUM
+      likelihood: MEDIUM
+      impact: MEDIUM
+      references:
+        - https://12factor.net/processes
+      license: MIT

@@ -1,0 +1,37 @@
+rules:
+  - id: local-in-memory-cache
+    pattern-either:
+      - pattern: cache.New(...)
+      - pattern: bigcache.New(...)
+      - pattern: bigcache.NewBigCache(...)
+      - pattern: freecache.NewCache(...)
+      - pattern: ristretto.NewCache(...)
+      - pattern: lru.New(...)
+      - pattern: lru.NewWithEvict(...)
+      - pattern: ttlcache.New(...)
+      - pattern: gocache.New(...)
+    message: >-
+      Process-local cache. Each replica fills and evicts its own copy, so the
+      effective hit rate drops as you scale out, every new pod starts cold against
+      the origin, and invalidating a key on one instance leaves the others serving
+      stale data. Use a shared cache (Redis or Memcached via `go-redis` /
+      `gomemcache`), or keep the local cache strictly as a short-TTL front for a
+      shared one.
+    languages:
+      - go
+    severity: WARNING
+    metadata:
+      category: portability
+      subcategory:
+        - audit
+      cloud-antipattern: caching
+      twelve-factor:
+        - iv-backing-services
+      technology:
+        - go
+      confidence: MEDIUM
+      likelihood: HIGH
+      impact: MEDIUM
+      references:
+        - https://12factor.net/backing-services
+      license: MIT

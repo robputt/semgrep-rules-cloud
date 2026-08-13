@@ -1,0 +1,35 @@
+rules:
+  - id: disabled-connection-pool
+    patterns:
+      - pattern-either:
+          - pattern: $F(..., poolclass=$POOL, ...)
+          - pattern: $F(..., poolclass=$MOD.$POOL, ...)
+      - metavariable-regex:
+          metavariable: $POOL
+          regex: ^(NullPool|StaticPool|AssertionPool)$
+    message: >-
+      `$POOL` disables connection reuse, so every statement pays a fresh TCP and
+      TLS handshake plus authentication round trip to the database. Under load
+      that dominates latency and hammers the database's connection limit.
+      `NullPool` is only appropriate behind an external pooler such as PgBouncer
+      or RDS Proxy, or in short-lived processes; otherwise use `QueuePool` with
+      an explicit size.
+    languages:
+      - python
+    severity: WARNING
+    metadata:
+      category: performance
+      subcategory:
+        - audit
+      cloud-antipattern: connection-management
+      twelve-factor:
+        - iv-backing-services
+      technology:
+        - python
+        - sqlalchemy
+      confidence: HIGH
+      likelihood: MEDIUM
+      impact: HIGH
+      references:
+        - https://docs.sqlalchemy.org/en/20/core/pooling.html#switching-pool-implementations
+      license: MIT

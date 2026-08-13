@@ -1,0 +1,47 @@
+rules:
+  - id: local-session-and-file-storage
+    pattern-either:
+      - patterns:
+          - pattern: SESSION_ENGINE = $ENGINE
+          - metavariable-regex:
+              metavariable: $ENGINE
+              regex: ^['"]django\.contrib\.sessions\.backends\.file['"]$
+      - patterns:
+          - pattern: DEFAULT_FILE_STORAGE = $STORAGE
+          - metavariable-regex:
+              metavariable: $STORAGE
+              regex: ^['"].*FileSystemStorage['"]$
+      - patterns:
+          - pattern-inside: |
+              STORAGES = {...}
+          - pattern: "{..., \"BACKEND\": $STORAGE, ...}"
+          - metavariable-regex:
+              metavariable: $STORAGE
+              regex: ^['"].*FileSystemStorage['"]$
+    message: >-
+      Sessions or uploaded files are persisted on the local container
+      filesystem, which is neither shared between replicas nor durable across
+      restarts. Users lose sessions when routed to another pod, and uploads
+      served from one replica 404 from the next. Store sessions in Redis, cache
+      or the database, and route media through object storage
+      (`django-storages` with S3, GCS or Azure Blob).
+    languages:
+      - python
+    severity: ERROR
+    metadata:
+      category: portability
+      subcategory:
+        - audit
+      cloud-antipattern: statefulness
+      twelve-factor:
+        - iv-backing-services
+        - vi-processes
+      technology:
+        - python
+        - django
+      confidence: HIGH
+      likelihood: HIGH
+      impact: HIGH
+      references:
+        - https://docs.djangoproject.com/en/stable/topics/http/sessions/
+      license: MIT

@@ -1,0 +1,35 @@
+rules:
+  - id: express-memory-session-store
+    patterns:
+      - pattern-either:
+          - pattern: session({...})
+          - pattern: expressSession({...})
+      - pattern-not: "session({..., store: $STORE, ...})"
+      - pattern-not: "expressSession({..., store: $STORE, ...})"
+    message: >-
+      `express-session` without a `store` falls back to MemoryStore, which keeps
+      every session in this process's heap. Sessions are lost on restart, they
+      leak memory because expired entries are never reaped, and a user routed to
+      another replica looks logged out. Wire up a shared store such as
+      `connect-redis` or `connect-pg-simple`.
+    languages:
+      - javascript
+      - typescript
+    severity: ERROR
+    metadata:
+      category: portability
+      subcategory:
+        - audit
+      cloud-antipattern: statefulness
+      twelve-factor:
+        - vi-processes
+      technology:
+        - javascript
+        - typescript
+        - express
+      confidence: HIGH
+      likelihood: HIGH
+      impact: HIGH
+      references:
+        - https://expressjs.com/en/resources/middleware/session.html
+      license: MIT

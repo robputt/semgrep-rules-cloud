@@ -1,0 +1,34 @@
+rules:
+  - id: local-cache-backend
+    patterns:
+      - pattern-inside: |
+          CACHES = {...}
+      - pattern: "{..., \"BACKEND\": $BACKEND, ...}"
+      - metavariable-regex:
+          metavariable: $BACKEND
+          regex: ^['"]django\.core\.cache\.backends\.(locmem\.LocMemCache|filebased\.FileBasedCache|dummy\.DummyCache)['"]$
+    message: >-
+      Django cache backend $BACKEND is process- or node-local. Hit rate degrades
+      as replicas are added, `cache.clear()` on one replica leaves the others
+      stale, and file-based entries vanish with the container. Point CACHES at a
+      shared service using `django_redis.cache.RedisCache`,
+      `django.core.cache.backends.redis.RedisCache` or the memcached backend.
+    languages:
+      - python
+    severity: WARNING
+    metadata:
+      category: portability
+      subcategory:
+        - audit
+      cloud-antipattern: caching
+      twelve-factor:
+        - iv-backing-services
+      technology:
+        - python
+        - django
+      confidence: HIGH
+      likelihood: HIGH
+      impact: MEDIUM
+      references:
+        - https://docs.djangoproject.com/en/stable/topics/cache/
+      license: MIT

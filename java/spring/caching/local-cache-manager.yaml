@@ -1,0 +1,35 @@
+rules:
+  - id: local-cache-manager
+    pattern-either:
+      - pattern: new ConcurrentMapCacheManager(...)
+      - pattern: new ConcurrentMapCache(...)
+      - pattern: new SimpleCacheManager(...)
+      - pattern: new NoOpCacheManager(...)
+      - pattern: new CaffeineCacheManager(...)
+      - pattern: new EhCacheCacheManager(...)
+    message: >-
+      Spring is wired to a JVM-local `CacheManager`. Entries are per replica, so
+      the hit rate falls as you scale out and `@CacheEvict` on one instance leaves
+      the others serving stale data, which shows as changes that appear and
+      disappear depending on which pod answers. Use `RedisCacheManager` (or
+      another shared provider) so every replica reads and invalidates the same
+      entries.
+    languages:
+      - java
+    severity: WARNING
+    metadata:
+      category: portability
+      subcategory:
+        - audit
+      cloud-antipattern: caching
+      twelve-factor:
+        - iv-backing-services
+      technology:
+        - java
+        - spring
+      confidence: HIGH
+      likelihood: HIGH
+      impact: MEDIUM
+      references:
+        - https://docs.spring.io/spring-boot/reference/io/caching.html
+      license: MIT

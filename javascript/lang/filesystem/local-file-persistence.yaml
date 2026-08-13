@@ -1,0 +1,43 @@
+rules:
+  - id: local-file-persistence
+    patterns:
+      - pattern-either:
+          - pattern: fs.writeFile($PATH, ...)
+          - pattern: fs.writeFileSync($PATH, ...)
+          - pattern: fs.appendFile($PATH, ...)
+          - pattern: fs.appendFileSync($PATH, ...)
+          - pattern: fs.createWriteStream($PATH, ...)
+          - pattern: fs.mkdir($PATH, ...)
+          - pattern: fs.mkdirSync($PATH, ...)
+          - pattern: fsPromises.writeFile($PATH, ...)
+      - metavariable-regex:
+          metavariable: $PATH
+          regex: ^['"`](\./|\.\./|/tmp/|/var/tmp/|/data|uploads|reports|logs|cache|data)
+    message: >-
+      Writing to the container's local filesystem at $PATH. That disk is not
+      shared with other replicas and is discarded when the container is replaced,
+      so uploads served from one pod 404 from the next and anything durable is
+      quietly lost on the next deploy. Send durable artefacts to object storage
+      (S3, GCS, Azure Blob) or a database and reserve local disk for scratch data.
+    languages:
+      - javascript
+      - typescript
+    severity: WARNING
+    metadata:
+      category: portability
+      subcategory:
+        - audit
+      cloud-antipattern: filesystem
+      twelve-factor:
+        - iv-backing-services
+        - vi-processes
+      technology:
+        - javascript
+        - typescript
+        - node.js
+      confidence: MEDIUM
+      likelihood: MEDIUM
+      impact: HIGH
+      references:
+        - https://12factor.net/processes
+      license: MIT

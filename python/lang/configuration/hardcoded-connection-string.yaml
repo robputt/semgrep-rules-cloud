@@ -1,0 +1,38 @@
+rules:
+  - id: hardcoded-connection-string
+    patterns:
+      - pattern-either:
+          - pattern: $VAR = $URL
+          - pattern: "$VAR: $TYPE = $URL"
+          - pattern: $FUNC(..., $URL, ...)
+          - pattern: $FUNC(..., $KWARG=$URL, ...)
+          - pattern: "{..., $KEY: $URL, ...}"
+          - pattern: return $URL
+      - metavariable-regex:
+          metavariable: $URL
+          regex: (?i)^['"](postgres|postgresql|mysql|mysql\+pymysql|mariadb|mongodb|mongodb\+srv|redis|rediss|amqp|amqps|kafka|clickhouse|mssql|oracle|elasticsearch|cassandra|memcached)://\S+['"]$
+    message: >-
+      Hardcoded backing-service connection string. Endpoints and credentials
+      differ per environment, so baking them into the source forces a rebuild to
+      promote code and usually leaks credentials into version control. Read the
+      URL from the environment (or a secret manager) at startup, for example
+      `os.environ["DATABASE_URL"]`.
+    languages:
+      - python
+    severity: ERROR
+    metadata:
+      category: portability
+      subcategory:
+        - audit
+      cloud-antipattern: configuration
+      twelve-factor:
+        - iii-config
+        - iv-backing-services
+      technology:
+        - python
+      confidence: HIGH
+      likelihood: HIGH
+      impact: HIGH
+      references:
+        - https://12factor.net/config
+      license: MIT

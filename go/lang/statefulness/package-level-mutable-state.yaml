@@ -1,0 +1,44 @@
+rules:
+  - id: package-level-mutable-state
+    patterns:
+      - pattern-either:
+          - pattern: var $VAR map[$K]$V
+          - pattern: var $VAR = map[$K]$V{}
+          - pattern: var $VAR = make(map[$K]$V)
+          - pattern: var $VAR = make(map[$K]$V, ...)
+          - pattern: var $VAR []$T
+          - pattern: var $VAR = []$T{}
+          - pattern: var $VAR = make(chan $T)
+          - pattern: var $VAR = make(chan $T, ...)
+      - pattern-not-inside: |
+          func $F(...) { ... }
+      - pattern-not-inside: |
+          func ($RECV $RTYPE) $F(...) { ... }
+      - metavariable-regex:
+          metavariable: $VAR
+          regex: ^[a-z_]
+    message: >-
+      Package-level mutable `$VAR` is per-process state. Each replica keeps its own
+      copy and loses it on restart or rescheduling, so behaviour depends on which
+      instance handled the request. It is also unsynchronised unless every access
+      holds a mutex, which is a data race under concurrent handlers. Move it to a
+      shared backing service (Redis, the database, a managed queue).
+    languages:
+      - go
+    severity: WARNING
+    metadata:
+      category: portability
+      subcategory:
+        - audit
+      cloud-antipattern: statefulness
+      twelve-factor:
+        - vi-processes
+        - viii-concurrency
+      technology:
+        - go
+      confidence: LOW
+      likelihood: MEDIUM
+      impact: HIGH
+      references:
+        - https://12factor.net/processes
+      license: MIT

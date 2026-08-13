@@ -1,0 +1,32 @@
+rules:
+  - id: unpooled-jdbc-connection
+    pattern-either:
+      - pattern: DriverManager.getConnection(...)
+      - pattern: java.sql.DriverManager.getConnection(...)
+      - pattern: new $DRIVER().connect(...)
+    message: >-
+      `DriverManager.getConnection` opens a brand new physical connection and
+      never reuses it. Every call pays TCP, TLS and authentication round trips,
+      and under concurrency the replicas together will exhaust the database's
+      `max_connections`. Inject a pooled `DataSource` (HikariCP, which Spring Boot
+      configures by default) and set `maximumPoolSize` against the database limit
+      divided by the expected replica count.
+    languages:
+      - java
+    severity: WARNING
+    metadata:
+      category: performance
+      subcategory:
+        - audit
+      cloud-antipattern: connection-management
+      twelve-factor:
+        - iv-backing-services
+      technology:
+        - java
+        - jdbc
+      confidence: HIGH
+      likelihood: HIGH
+      impact: HIGH
+      references:
+        - https://github.com/brettwooldridge/HikariCP/wiki/About-Pool-Sizing
+      license: MIT

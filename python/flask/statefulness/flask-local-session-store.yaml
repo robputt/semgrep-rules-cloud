@@ -1,0 +1,35 @@
+rules:
+  - id: flask-local-session-store
+    patterns:
+      - pattern-either:
+          - pattern: $APP.config["SESSION_TYPE"] = $BACKEND
+          - pattern: $APP.config.update(..., SESSION_TYPE=$BACKEND, ...)
+          - pattern: SESSION_TYPE = $BACKEND
+      - metavariable-regex:
+          metavariable: $BACKEND
+          regex: ^['"](filesystem|cachelib|null)['"]$
+    message: >-
+      Flask-Session is configured with the $BACKEND backend, which keeps session
+      data on the local container filesystem. A user's next request can land on
+      a different replica and appear logged out, and every restart drops all
+      sessions. Use a shared backend (`redis`, `memcached`, or a database) so any
+      replica can serve any session, or move to signed stateless tokens.
+    languages:
+      - python
+    severity: ERROR
+    metadata:
+      category: portability
+      subcategory:
+        - audit
+      cloud-antipattern: statefulness
+      twelve-factor:
+        - vi-processes
+      technology:
+        - python
+        - flask
+      confidence: HIGH
+      likelihood: HIGH
+      impact: HIGH
+      references:
+        - https://12factor.net/processes
+      license: MIT

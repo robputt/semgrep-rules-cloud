@@ -1,0 +1,37 @@
+rules:
+  - id: hardcoded-connection-string
+    patterns:
+      - pattern-either:
+          - pattern: $TYPE $VAR = $URL;
+          - pattern: $VAR = $URL;
+          - pattern: $METHOD(..., $URL, ...);
+          - pattern: return $URL;
+      - metavariable-regex:
+          metavariable: $URL
+          regex: (?i)^"(jdbc:[a-z0-9]+:|postgres(ql)?://|mysql://|mongodb(\+srv)?://|redis(s)?://|amqp(s)?://|kafka://)\S+"$
+    message: >-
+      Hardcoded backing-service connection string. The endpoint and credentials
+      differ per environment, so the same artefact cannot be promoted from staging
+      to production, and the credential is now in version control and every built
+      image. Resolve it at runtime from configuration
+      (`spring.datasource.url` bound to an environment variable, or a secret
+      manager) rather than compiling it in.
+    languages:
+      - java
+    severity: ERROR
+    metadata:
+      category: portability
+      subcategory:
+        - audit
+      cloud-antipattern: configuration
+      twelve-factor:
+        - iii-config
+        - iv-backing-services
+      technology:
+        - java
+      confidence: HIGH
+      likelihood: HIGH
+      impact: HIGH
+      references:
+        - https://12factor.net/config
+      license: MIT

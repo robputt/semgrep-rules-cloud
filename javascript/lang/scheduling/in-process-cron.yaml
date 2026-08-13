@@ -1,0 +1,40 @@
+rules:
+  - id: in-process-cron
+    pattern-either:
+      - pattern: cron.schedule(...)
+      - pattern: new CronJob(...)
+      - pattern: CronJob.from(...)
+      - pattern: schedule.scheduleJob(...)
+      - pattern: nodeSchedule.scheduleJob(...)
+      - pattern: new ToadScheduler(...)
+      - pattern: require('node-cron')
+      - pattern: import $X from 'node-cron'
+    message: >-
+      Cron schedule registered inside the application process. Every replica
+      registers the same trigger, so a nightly job runs once per replica, and it
+      does not run at all during a rolling deploy or if the pod is scaled to zero.
+      Move the trigger outside the process (Kubernetes CronJob, EventBridge
+      Scheduler, Cloud Scheduler) so exactly one execution is dispatched, or take
+      a distributed lock before doing the work.
+    languages:
+      - javascript
+      - typescript
+    severity: WARNING
+    metadata:
+      category: correctness
+      subcategory:
+        - audit
+      cloud-antipattern: scheduling
+      twelve-factor:
+        - viii-concurrency
+        - xii-admin-processes
+      technology:
+        - javascript
+        - typescript
+        - node.js
+      confidence: HIGH
+      likelihood: HIGH
+      impact: HIGH
+      references:
+        - https://12factor.net/concurrency
+      license: MIT

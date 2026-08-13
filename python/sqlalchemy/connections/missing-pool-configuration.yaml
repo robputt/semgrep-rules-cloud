@@ -1,0 +1,40 @@
+rules:
+  - id: missing-pool-configuration
+    patterns:
+      - pattern-either:
+          - pattern: sqlalchemy.create_engine(...)
+          - pattern: create_engine(...)
+          - pattern: sqlalchemy.ext.asyncio.create_async_engine(...)
+          - pattern: create_async_engine(...)
+      - pattern-not: $F(..., pool_size=$V, ...)
+      - pattern-not: $F(..., poolclass=$V, ...)
+      - pattern-not: $F(..., pool_pre_ping=$V, ...)
+      - pattern-not: $F(..., pool_recycle=$V, ...)
+      - pattern-not: $F(..., **$KWARGS)
+    message: >-
+      Engine created with no pool configuration, so SQLAlchemy's defaults apply
+      (pool_size 5, max_overflow 10, no pre-ping, connections never recycled).
+      Multiplied across replicas this either exhausts the database's connection
+      limit or starves the app, and stale connections survive a database
+      failover. Set `pool_size`, `max_overflow`, `pool_recycle` and
+      `pool_pre_ping` explicitly, sized against the database connection limit
+      divided by the expected replica count.
+    languages:
+      - python
+    severity: WARNING
+    metadata:
+      category: performance
+      subcategory:
+        - audit
+      cloud-antipattern: connection-management
+      twelve-factor:
+        - iv-backing-services
+      technology:
+        - python
+        - sqlalchemy
+      confidence: MEDIUM
+      likelihood: HIGH
+      impact: HIGH
+      references:
+        - https://docs.sqlalchemy.org/en/20/core/pooling.html
+      license: MIT

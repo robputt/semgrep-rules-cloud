@@ -1,0 +1,35 @@
+rules:
+  - id: bind-to-localhost
+    patterns:
+      - pattern-either:
+          - pattern: http.ListenAndServe($ADDR, ...)
+          - pattern: http.ListenAndServeTLS($ADDR, ...)
+          - pattern: net.Listen($NETWORK, $ADDR)
+          - pattern: "&http.Server{..., Addr: $ADDR, ...}"
+      - metavariable-regex:
+          metavariable: $ADDR
+          regex: '^"(127\.0\.0\.1|localhost|\[::1\]):'
+    message: >-
+      Listener bound to $ADDR, reachable only from inside the container's own
+      network namespace. Kubernetes probes, Service traffic and load balancer
+      health checks arrive on the pod IP and are refused, which typically presents
+      as a container that never passes readiness. Bind to `:PORT` or `0.0.0.0:PORT`
+      and restrict access with network policy or security groups.
+    languages:
+      - go
+    severity: ERROR
+    metadata:
+      category: correctness
+      subcategory:
+        - audit
+      cloud-antipattern: networking
+      twelve-factor:
+        - vii-port-binding
+      technology:
+        - go
+      confidence: HIGH
+      likelihood: MEDIUM
+      impact: HIGH
+      references:
+        - https://12factor.net/port-binding
+      license: MIT

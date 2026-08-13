@@ -1,0 +1,42 @@
+rules:
+  - id: local-in-memory-cache
+    pattern-either:
+      - pattern: require('node-cache')
+      - pattern: require('memory-cache')
+      - pattern: require('lru-cache')
+      - pattern: require('quick-lru')
+      - pattern: import $X from 'node-cache'
+      - pattern: import $X from 'memory-cache'
+      - pattern: import $X from 'lru-cache'
+      - pattern: import $X from 'quick-lru'
+      - pattern: import { ... } from 'lru-cache'
+      - pattern: new NodeCache(...)
+      - pattern: new LRUCache(...)
+      - pattern: new QuickLRU(...)
+    message: >-
+      Process-local cache library. Each replica warms and evicts independently,
+      so the effective hit rate drops as you scale out and an invalidation on one
+      instance leaves the rest serving stale values. Back the cache with Redis or
+      Memcached (`ioredis`, `redis`, `@keyv/redis`) so all replicas share one
+      view and a single delete is authoritative.
+    languages:
+      - javascript
+      - typescript
+    severity: WARNING
+    metadata:
+      category: portability
+      subcategory:
+        - audit
+      cloud-antipattern: caching
+      twelve-factor:
+        - iv-backing-services
+      technology:
+        - javascript
+        - typescript
+        - node.js
+      confidence: HIGH
+      likelihood: HIGH
+      impact: MEDIUM
+      references:
+        - https://12factor.net/backing-services
+      license: MIT

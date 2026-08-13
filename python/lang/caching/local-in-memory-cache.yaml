@@ -1,0 +1,49 @@
+rules:
+  - id: local-in-memory-cache
+    pattern-either:
+      - pattern: cachetools.$CACHE(...)
+      - pattern: TTLCache(...)
+      - pattern: LRUCache(...)
+      - pattern: LFUCache(...)
+      - pattern: |
+          @cachetools.cached(...)
+          def $F(...):
+            ...
+      - pattern: |
+          @cached(...)
+          def $F(...):
+            ...
+      - pattern: diskcache.Cache(...)
+      - pattern: shelve.open(...)
+      - pattern: |
+          if $KEY in $CACHE:
+            return $CACHE[$KEY]
+      - pattern: |
+          if $CACHE.get($KEY):
+            return $CACHE[$KEY]
+    message: >-
+      Process-local cache. Each replica builds and evicts its own copy, so hit
+      rates fall as you scale out, cold starts hit the origin, and invalidation
+      on one instance leaves the others serving stale data. Use a shared cache
+      (Redis, Memcached, or a managed equivalent) so all replicas see the same
+      entries and a single delete actually invalidates.
+    languages:
+      - python
+    severity: WARNING
+    metadata:
+      category: portability
+      subcategory:
+        - audit
+      cloud-antipattern: caching
+      twelve-factor:
+        - iv-backing-services
+        - vi-processes
+      technology:
+        - python
+        - cachetools
+      confidence: MEDIUM
+      likelihood: HIGH
+      impact: MEDIUM
+      references:
+        - https://12factor.net/backing-services
+      license: MIT

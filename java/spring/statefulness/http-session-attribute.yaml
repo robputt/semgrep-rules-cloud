@@ -1,0 +1,33 @@
+rules:
+  - id: http-session-attribute
+    pattern-either:
+      - pattern: (HttpSession $SESSION).setAttribute(...)
+      - pattern: (javax.servlet.http.HttpSession $SESSION).setAttribute(...)
+      - pattern: (jakarta.servlet.http.HttpSession $SESSION).setAttribute(...)
+      - pattern: $REQUEST.getSession(...).setAttribute(...)
+    message: >-
+      Server-side session state written to `HttpSession`. By default Tomcat keeps
+      this in the JVM heap, so the next request can land on another replica and
+      the attribute is gone, and a rolling deploy logs everyone out. Either move
+      the state client-side into a signed token, or add Spring Session with Redis
+      (`spring-session-data-redis`) so all replicas share the same session store.
+    languages:
+      - java
+    severity: WARNING
+    metadata:
+      category: portability
+      subcategory:
+        - audit
+      cloud-antipattern: statefulness
+      twelve-factor:
+        - vi-processes
+      technology:
+        - java
+        - spring
+        - servlet
+      confidence: HIGH
+      likelihood: HIGH
+      impact: HIGH
+      references:
+        - https://docs.spring.io/spring-session/reference/
+      license: MIT

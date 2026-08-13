@@ -1,0 +1,41 @@
+rules:
+  - id: uncoordinated-scheduled-task
+    patterns:
+      - pattern: |
+          @Scheduled(...)
+          $RETURN $METHOD(...) { ... }
+      - pattern-not: |
+          @SchedulerLock(...)
+          @Scheduled(...)
+          $RETURN $METHOD(...) { ... }
+      - pattern-not: |
+          @Scheduled(...)
+          @SchedulerLock(...)
+          $RETURN $METHOD(...) { ... }
+    message: >-
+      `@Scheduled` runs inside every replica, so `$METHOD` fires once per instance
+      rather than once per interval. For anything that writes, that means duplicate
+      work, duplicate emails or double-counted totals as soon as you scale past one
+      pod. Guard it with a distributed lock (ShedLock's `@SchedulerLock`) or move
+      the trigger to a Kubernetes CronJob or EventBridge schedule that dispatches a
+      single execution.
+    languages:
+      - java
+    severity: WARNING
+    metadata:
+      category: correctness
+      subcategory:
+        - audit
+      cloud-antipattern: scheduling
+      twelve-factor:
+        - viii-concurrency
+        - xii-admin-processes
+      technology:
+        - java
+        - spring
+      confidence: MEDIUM
+      likelihood: HIGH
+      impact: HIGH
+      references:
+        - https://github.com/lukas-krecan/ShedLock
+      license: MIT

@@ -1,0 +1,50 @@
+rules:
+  - id: missing-graceful-shutdown
+    patterns:
+      - pattern-either:
+          - pattern: http.ListenAndServe(...)
+          - pattern: http.ListenAndServeTLS(...)
+          - pattern: $SERVER.ListenAndServe()
+          - pattern: $SERVER.ListenAndServeTLS(...)
+      - pattern-not-inside: |
+          func $F(...) {
+            ...
+            signal.NotifyContext(...)
+            ...
+          }
+      - pattern-not-inside: |
+          func $F(...) {
+            ...
+            signal.Notify(...)
+            ...
+          }
+      - pattern-not-inside: |
+          func $F(...) {
+            ...
+            $SERVER.Shutdown(...)
+            ...
+          }
+    message: >-
+      The server is started without handling SIGTERM. Orchestrators send SIGTERM
+      and then SIGKILL after the grace period, so the default behaviour drops
+      in-flight requests on every deploy, scale-in and node drain, which surfaces
+      as 502s during rollout. Use `signal.NotifyContext` for SIGTERM/SIGINT and
+      call `server.Shutdown(ctx)` so open requests finish first.
+    languages:
+      - go
+    severity: WARNING
+    metadata:
+      category: correctness
+      subcategory:
+        - audit
+      cloud-antipattern: lifecycle
+      twelve-factor:
+        - ix-disposability
+      technology:
+        - go
+      confidence: MEDIUM
+      likelihood: HIGH
+      impact: MEDIUM
+      references:
+        - https://12factor.net/disposability
+      license: MIT

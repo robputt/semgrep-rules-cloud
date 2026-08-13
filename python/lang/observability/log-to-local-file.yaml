@@ -1,0 +1,36 @@
+rules:
+  - id: log-to-local-file
+    pattern-either:
+      - pattern: logging.FileHandler(...)
+      - pattern: FileHandler(...)
+      - pattern: logging.handlers.RotatingFileHandler(...)
+      - pattern: RotatingFileHandler(...)
+      - pattern: logging.handlers.TimedRotatingFileHandler(...)
+      - pattern: TimedRotatingFileHandler(...)
+      - pattern: logging.basicConfig(..., filename=$FILE, ...)
+      - pattern: logging.config.fileConfig(..., filename=$FILE, ...)
+    message: >-
+      Logs are written to a file on the container filesystem. Nothing collects
+      them there, and they are lost with the container, so incidents lose their
+      evidence. Treat logs as an event stream: write structured records to
+      stdout/stderr and let the platform (Fluent Bit, CloudWatch, Cloud Logging)
+      handle routing, retention and rotation.
+    languages:
+      - python
+    severity: WARNING
+    metadata:
+      category: best-practice
+      subcategory:
+        - audit
+      cloud-antipattern: observability
+      twelve-factor:
+        - xi-logs
+      technology:
+        - python
+        - logging
+      confidence: HIGH
+      likelihood: HIGH
+      impact: MEDIUM
+      references:
+        - https://12factor.net/logs
+      license: MIT

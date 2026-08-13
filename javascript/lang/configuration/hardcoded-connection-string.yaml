@@ -1,0 +1,39 @@
+rules:
+  - id: hardcoded-connection-string
+    patterns:
+      - pattern-either:
+          - pattern: var $VAR = $URL
+          - pattern: $OBJ.$PROP = $URL
+          - pattern: $FUNC(..., $URL, ...)
+          - pattern: new $CLASS(..., $URL, ...)
+          - pattern: "{..., $KEY: $URL, ...}"
+          - pattern: return $URL
+      - metavariable-regex:
+          metavariable: $URL
+          regex: (?i)^['"`](postgres|postgresql|mysql|mariadb|mongodb|mongodb\+srv|redis|rediss|amqp|amqps|kafka|clickhouse|mssql|sqlserver|elasticsearch|cassandra|memcached)://\S+['"`]$
+    message: >-
+      Hardcoded backing-service connection string. Endpoints and credentials
+      differ per environment, so baking them in forces a rebuild to promote the
+      same code and normally commits credentials to version control. Read the URL
+      from `process.env` at startup and fail fast when it is absent.
+    languages:
+      - javascript
+      - typescript
+    severity: ERROR
+    metadata:
+      category: portability
+      subcategory:
+        - audit
+      cloud-antipattern: configuration
+      twelve-factor:
+        - iii-config
+        - iv-backing-services
+      technology:
+        - javascript
+        - typescript
+      confidence: HIGH
+      likelihood: HIGH
+      impact: HIGH
+      references:
+        - https://12factor.net/config
+      license: MIT

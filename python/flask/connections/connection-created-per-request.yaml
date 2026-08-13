@@ -1,0 +1,53 @@
+rules:
+  - id: connection-created-per-request
+    patterns:
+      - pattern-either:
+          - pattern-inside: |
+              @$APP.route(...)
+              def $HANDLER(...):
+                ...
+          - pattern-inside: |
+              @$APP.get(...)
+              def $HANDLER(...):
+                ...
+          - pattern-inside: |
+              @$APP.post(...)
+              def $HANDLER(...):
+                ...
+      - pattern-either:
+          - pattern: psycopg2.connect(...)
+          - pattern: psycopg.connect(...)
+          - pattern: pymysql.connect(...)
+          - pattern: MySQLdb.connect(...)
+          - pattern: sqlite3.connect(...)
+          - pattern: create_engine(...)
+          - pattern: MongoClient(...)
+          - pattern: pymongo.MongoClient(...)
+          - pattern: redis.Redis(...)
+          - pattern: redis.Redis.from_url(...)
+    message: >-
+      A new backing-service connection is opened inside the request handler
+      `$HANDLER`. Each request pays the TCP, TLS and auth handshake, and
+      concurrent requests across replicas can exceed the server's connection
+      limit. Create the pool or client once at startup (module scope, an app
+      factory, or Flask's `g` / teardown hooks) and check connections out of it
+      per request.
+    languages:
+      - python
+    severity: WARNING
+    metadata:
+      category: performance
+      subcategory:
+        - audit
+      cloud-antipattern: connection-management
+      twelve-factor:
+        - iv-backing-services
+      technology:
+        - python
+        - flask
+      confidence: HIGH
+      likelihood: HIGH
+      impact: HIGH
+      references:
+        - https://flask.palletsprojects.com/en/stable/appcontext/
+      license: MIT

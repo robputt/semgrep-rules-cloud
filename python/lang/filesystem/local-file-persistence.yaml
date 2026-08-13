@@ -1,0 +1,45 @@
+rules:
+  - id: local-file-persistence
+    patterns:
+      - pattern-either:
+          - patterns:
+              - pattern: open($PATH, $MODE, ...)
+              - metavariable-regex:
+                  metavariable: $MODE
+                  regex: ^['"][wax]
+          - pattern: pathlib.Path($PATH).write_text(...)
+          - pattern: pathlib.Path($PATH).write_bytes(...)
+          - pattern: Path($PATH).write_text(...)
+          - pattern: Path($PATH).write_bytes(...)
+          - pattern: os.makedirs($PATH, ...)
+          - pattern: os.mkdir($PATH, ...)
+          - pattern: shutil.copy($SRC, $PATH)
+          - pattern: shutil.copyfile($SRC, $PATH)
+      - metavariable-regex:
+          metavariable: $PATH
+          regex: ^['"](\./|\.\./|/tmp/|/var/tmp/|/var/data|/data|[A-Za-z0-9_\-]+/)
+    message: >-
+      Writing to the local filesystem at `$PATH`. Container filesystems are
+      ephemeral and not shared, so anything written here is invisible to other
+      replicas and is discarded when the pod or task is replaced. Write durable
+      artefacts to object storage (S3, GCS, Azure Blob) or a database, and keep
+      local disk for scratch data only.
+    languages:
+      - python
+    severity: WARNING
+    metadata:
+      category: portability
+      subcategory:
+        - audit
+      cloud-antipattern: filesystem
+      twelve-factor:
+        - iv-backing-services
+        - vi-processes
+      technology:
+        - python
+      confidence: MEDIUM
+      likelihood: MEDIUM
+      impact: HIGH
+      references:
+        - https://12factor.net/processes
+      license: MIT

@@ -1,0 +1,37 @@
+rules:
+  - id: in-process-scheduler
+    pattern-either:
+      - pattern: BackgroundScheduler(...)
+      - pattern: BlockingScheduler(...)
+      - pattern: AsyncIOScheduler(...)
+      - pattern: apscheduler.schedulers.background.BackgroundScheduler(...)
+      - pattern: apscheduler.schedulers.blocking.BlockingScheduler(...)
+      - pattern: schedule.every(...)
+      - pattern: threading.Timer(...)
+    message: >-
+      In-process scheduler. Every replica runs the same timers, so a job that
+      should fire once fires N times, and nothing runs while the process is
+      being redeployed. Move periodic work to an external scheduler that
+      triggers a single execution (Kubernetes CronJob, EventBridge, Cloud
+      Scheduler) or add a distributed lock / leader election so only one replica
+      acts.
+    languages:
+      - python
+    severity: WARNING
+    metadata:
+      category: correctness
+      subcategory:
+        - audit
+      cloud-antipattern: scheduling
+      twelve-factor:
+        - viii-concurrency
+        - xii-admin-processes
+      technology:
+        - python
+        - apscheduler
+      confidence: MEDIUM
+      likelihood: HIGH
+      impact: HIGH
+      references:
+        - https://12factor.net/concurrency
+      license: MIT

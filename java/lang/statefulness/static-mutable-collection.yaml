@@ -1,0 +1,39 @@
+rules:
+  - id: static-mutable-collection
+    patterns:
+      - pattern-either:
+          - pattern: static $TYPE $NAME = new $IMPL(...);
+          - pattern: static $TYPE $NAME = new $IMPL<>(...);
+      - metavariable-regex:
+          metavariable: $IMPL
+          regex: ^(HashMap|LinkedHashMap|TreeMap|ConcurrentHashMap|ConcurrentSkipListMap|HashSet|LinkedHashSet|TreeSet|ArrayList|LinkedList|ArrayDeque|CopyOnWriteArrayList|CopyOnWriteArraySet|ConcurrentLinkedQueue|AtomicLong|AtomicInteger|AtomicReference)$
+      # Skip SCREAMING_SNAKE_CASE names, which are conventionally lookup tables.
+      - metavariable-regex:
+          metavariable: $NAME
+          regex: ^.*[a-z].*$
+    message: >-
+      Static mutable collection `$NAME` is JVM-wide state. Each replica holds its
+      own copy, so reads are inconsistent between instances and everything is lost
+      when the pod restarts. It also grows unbounded unless something evicts,
+      which eventually trips the container memory limit. Move the data to a shared
+      store (Redis, the database) or to an explicitly bounded cache such as
+      Caffeine that is backed by that store.
+    languages:
+      - java
+    severity: WARNING
+    metadata:
+      category: portability
+      subcategory:
+        - audit
+      cloud-antipattern: statefulness
+      twelve-factor:
+        - vi-processes
+        - viii-concurrency
+      technology:
+        - java
+      confidence: MEDIUM
+      likelihood: MEDIUM
+      impact: HIGH
+      references:
+        - https://12factor.net/processes
+      license: MIT

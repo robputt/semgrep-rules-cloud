@@ -1,0 +1,48 @@
+rules:
+  - id: module-level-mutable-state
+    patterns:
+      # `var` in a Semgrep pattern also matches `let` and `const` declarations.
+      - pattern-either:
+          - pattern: var $VAR = {}
+          - pattern: var $VAR = []
+          - pattern: var $VAR = new Map(...)
+          - pattern: var $VAR = new Set(...)
+          - pattern: var $VAR = new WeakMap(...)
+      # Keep frozen config objects out: only empty literals are treated as
+      # mutable accumulators.
+      - pattern-not: "var $VAR = {..., $KEY: $VALUE, ...}"
+      - pattern-not-inside: function $F(...) { ... }
+      - pattern-not-inside: function* $F(...) { ... }
+      - pattern-not-inside: async function $F(...) { ... }
+      - pattern-not-inside: $F = function(...) { ... }
+      - pattern-not-inside: (...) => { ... }
+      - pattern-not-inside: class $C { ... }
+      - pattern-not-inside: describe(...)
+      - pattern-not-inside: it(...)
+    message: >-
+      Module-scoped mutable collection `$VAR` lives in the process. With more
+      than one instance behind a load balancer each replica sees a different
+      view, and the contents are gone on the next deploy or restart. Keep the
+      process stateless and store shared state in Redis, the database or a
+      managed queue.
+    languages:
+      - javascript
+      - typescript
+    severity: WARNING
+    metadata:
+      category: portability
+      subcategory:
+        - audit
+      cloud-antipattern: statefulness
+      twelve-factor:
+        - vi-processes
+        - viii-concurrency
+      technology:
+        - javascript
+        - typescript
+      confidence: LOW
+      likelihood: MEDIUM
+      impact: HIGH
+      references:
+        - https://12factor.net/processes
+      license: MIT
