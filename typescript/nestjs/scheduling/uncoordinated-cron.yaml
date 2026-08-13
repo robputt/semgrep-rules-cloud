@@ -1,0 +1,41 @@
+rules:
+  - id: uncoordinated-cron
+    pattern-either:
+      - pattern: |
+          @Cron(...)
+          $METHOD(...) { ... }
+      - pattern: |
+          @Interval(...)
+          $METHOD(...) { ... }
+      - pattern: |
+          @Timeout(...)
+          $METHOD(...) { ... }
+      - pattern: $REGISTRY.addCronJob(...)
+    message: >-
+      `@nestjs/schedule` registers the trigger inside the application process, so
+      every replica runs `$METHOD` on the same schedule. A nightly job fires once per
+      pod, which for anything that writes means duplicate work, duplicate emails or
+      double-counted totals, and it does not fire at all during a rolling deploy or
+      when scaled to zero. Move the trigger outside the process (Kubernetes CronJob,
+      EventBridge Scheduler) so exactly one execution is dispatched, or take a
+      distributed lock in Redis before doing the work.
+    languages:
+      - typescript
+    severity: WARNING
+    metadata:
+      category: correctness
+      subcategory:
+        - audit
+      cloud-antipattern: scheduling
+      twelve-factor:
+        - viii-concurrency
+        - xii-admin-processes
+      technology:
+        - typescript
+        - nestjs
+      confidence: HIGH
+      likelihood: HIGH
+      impact: HIGH
+      references:
+        - https://docs.nestjs.com/techniques/task-scheduling
+      license: MIT

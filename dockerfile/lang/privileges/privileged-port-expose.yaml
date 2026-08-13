@@ -1,0 +1,33 @@
+rules:
+  - id: privileged-port-expose
+    patterns:
+      - pattern: EXPOSE $PORT
+      - metavariable-regex:
+          metavariable: $PORT
+          regex: ^([0-9]|[1-9][0-9]|[1-9][0-9][0-9]|10[01][0-9]|102[0-3])(/(tcp|udp))?$
+    message: >-
+      Port $PORT is privileged (below 1024), so binding it needs either root or
+      the `CAP_NET_BIND_SERVICE` capability. That pushes the image toward running
+      as root for no benefit, since a Kubernetes Service or load balancer can map
+      public port 80 or 443 to any container port. Listen on an unprivileged port
+      such as 8080 and let the Service do the mapping.
+    languages:
+      - dockerfile
+    severity: WARNING
+    metadata:
+      category: portability
+      subcategory:
+        - audit
+      cloud-antipattern: privileges
+      twelve-factor:
+        - vii-port-binding
+      technology:
+        - docker
+        - dockerfile
+        - kubernetes
+      confidence: HIGH
+      likelihood: MEDIUM
+      impact: MEDIUM
+      references:
+        - https://kubernetes.io/docs/concepts/services-networking/service/
+      license: MIT

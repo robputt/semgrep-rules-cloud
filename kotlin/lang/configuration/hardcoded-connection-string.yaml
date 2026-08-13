@@ -1,0 +1,39 @@
+rules:
+  - id: hardcoded-connection-string
+    patterns:
+      - pattern-either:
+          - pattern: val $NAME = $URL
+          - pattern: var $NAME = $URL
+          - pattern: $FUNC(..., $URL, ...)
+          - pattern: $FUNC(..., $KWARG = $URL, ...)
+          - pattern: return $URL
+          # Expression-body function: `fun redisUri(): String = "redis://..."`.
+          - pattern: fun $F(...) = $URL
+      - metavariable-regex:
+          metavariable: $URL
+          regex: (?i)^"(jdbc:[a-z0-9]+:|postgres(ql)?://|mysql://|mariadb://|mongodb(\+srv)?://|redis(s)?://|amqps?://|kafka://|clickhouse://)[^"]+"$
+    message: >-
+      Hardcoded backing-service connection string. The endpoint and credentials
+      differ per environment, so the same artefact cannot be promoted from staging
+      to production, and the credential is now in version control and in every
+      built image. Read it at runtime from configuration or the environment
+      (`System.getenv`, Spring's `spring.datasource.url`) instead.
+    languages:
+      - kotlin
+    severity: ERROR
+    metadata:
+      category: portability
+      subcategory:
+        - audit
+      cloud-antipattern: configuration
+      twelve-factor:
+        - iii-config
+        - iv-backing-services
+      technology:
+        - kotlin
+      confidence: HIGH
+      likelihood: HIGH
+      impact: HIGH
+      references:
+        - https://12factor.net/config
+      license: MIT

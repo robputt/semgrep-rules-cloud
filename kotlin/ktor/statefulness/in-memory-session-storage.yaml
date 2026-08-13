@@ -1,0 +1,32 @@
+rules:
+  - id: in-memory-session-storage
+    pattern-either:
+      - pattern: SessionStorageMemory()
+      - pattern: directorySessionStorage(...)
+    message: >-
+      Ktor sessions are stored in this process. `SessionStorageMemory` keeps them on
+      the heap and `directorySessionStorage` writes them to the container
+      filesystem, so neither is shared between replicas or survives a restart. A
+      user routed to another pod appears logged out, and every deploy signs everyone
+      out. Back sessions with Redis (`RedisSessionStorage` or a custom
+      `SessionStorage`), or use signed stateless cookies where the payload is small
+      enough.
+    languages:
+      - kotlin
+    severity: ERROR
+    metadata:
+      category: portability
+      subcategory:
+        - audit
+      cloud-antipattern: statefulness
+      twelve-factor:
+        - vi-processes
+      technology:
+        - kotlin
+        - ktor
+      confidence: HIGH
+      likelihood: HIGH
+      impact: HIGH
+      references:
+        - https://ktor.io/docs/server-sessions.html
+      license: MIT

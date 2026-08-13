@@ -1,0 +1,40 @@
+rules:
+  - id: missing-non-root-user
+    patterns:
+      - pattern-either:
+          - pattern: CMD ...
+          - pattern: ENTRYPOINT ...
+      # The `USER ... / ...` range runs to the end of the file and does not
+      # respect stage boundaries, so a `USER` in a build stage will suppress
+      # findings in the final stage. Prefer switching user in the final stage.
+      - pattern-not-inside: |
+          USER $USER
+          ...
+    message: >-
+      No `USER` instruction before the entrypoint, so the container runs as root.
+      Any container breakout or a mounted hostPath then has root on the node, and
+      hardened clusters reject the workload outright: the Kubernetes restricted
+      Pod Security Standard requires `runAsNonRoot`, so this image will fail
+      admission. Create an unprivileged user in the image and switch to it with a
+      numeric UID (`USER 10001`), which lets `runAsNonRoot` be verified without
+      resolving `/etc/passwd`.
+    languages:
+      - dockerfile
+    severity: ERROR
+    metadata:
+      category: security
+      subcategory:
+        - audit
+      cwe:
+        - "CWE-250: Execution with Unnecessary Privileges"
+      cloud-antipattern: privileges
+      technology:
+        - docker
+        - dockerfile
+        - kubernetes
+      confidence: MEDIUM
+      likelihood: HIGH
+      impact: HIGH
+      references:
+        - https://kubernetes.io/docs/concepts/security/pod-security-standards/
+      license: MIT

@@ -1,0 +1,38 @@
+rules:
+  - id: static-mutable-collection
+    patterns:
+      # `new $IMPL(...) { ... }` covers plain, argument and collection-initializer
+      # forms; the second branch covers target-typed `new()`.
+      - pattern-either:
+          - pattern: static $TYPE $NAME = new $IMPL(...) { ... };
+          - pattern: static $TYPE $NAME = new(...) { ... };
+      - metavariable-regex:
+          metavariable: $TYPE
+          regex: ^(System\.Collections\.(Generic|Concurrent)\.)?(ConcurrentDictionary|ConcurrentBag|ConcurrentQueue|ConcurrentStack|Dictionary|SortedDictionary|List|HashSet|SortedSet|Queue|Stack|ObservableCollection|StringBuilder)<
+    message: >-
+      Static mutable collection `$NAME` is process-wide state. Each instance of the
+      service keeps its own copy, so reads are inconsistent between replicas and
+      everything is lost when the container is recycled. It also grows unbounded
+      unless something evicts, which eventually trips the container memory limit.
+      Move the data to a shared store (Redis via `IDistributedCache`, or the
+      database), or use a bounded cache that is backed by one.
+    languages:
+      - csharp
+    severity: WARNING
+    metadata:
+      category: portability
+      subcategory:
+        - audit
+      cloud-antipattern: statefulness
+      twelve-factor:
+        - vi-processes
+        - viii-concurrency
+      technology:
+        - csharp
+        - dotnet
+      confidence: MEDIUM
+      likelihood: MEDIUM
+      impact: HIGH
+      references:
+        - https://12factor.net/processes
+      license: MIT

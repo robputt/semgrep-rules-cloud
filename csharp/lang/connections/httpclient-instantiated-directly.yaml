@@ -1,0 +1,35 @@
+rules:
+  - id: httpclient-instantiated-directly
+    patterns:
+      # `new T(...) { ... }` also matches the plain and object-initializer forms.
+      - pattern-either:
+          - pattern: new HttpClient(...) { ... }
+          - pattern: new System.Net.Http.HttpClient(...) { ... }
+    message: >-
+      Constructing `HttpClient` per call leaks sockets. Disposing it leaves the
+      underlying connection in TIME_WAIT, so a service under load exhausts
+      ephemeral ports and starts failing with `SocketException`. The usual
+      workaround, a static singleton, then never picks up DNS changes, which
+      breaks when a backing service fails over or is rescheduled to a new IP.
+      Inject `IHttpClientFactory` (`services.AddHttpClient<T>()`), which pools
+      handlers and rotates them on a lifetime so DNS is re-resolved.
+    languages:
+      - csharp
+    severity: WARNING
+    metadata:
+      category: performance
+      subcategory:
+        - audit
+      cloud-antipattern: connection-management
+      twelve-factor:
+        - iv-backing-services
+      technology:
+        - csharp
+        - dotnet
+        - aspnetcore
+      confidence: HIGH
+      likelihood: HIGH
+      impact: HIGH
+      references:
+        - https://learn.microsoft.com/en-us/dotnet/architecture/microservices/implement-resilient-applications/use-httpclientfactory-to-implement-resilient-http-requests
+      license: MIT

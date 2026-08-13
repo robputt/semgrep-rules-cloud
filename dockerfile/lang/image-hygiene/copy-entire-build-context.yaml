@@ -1,0 +1,33 @@
+rules:
+  - id: copy-entire-build-context
+    patterns:
+      - pattern-either:
+          - pattern: COPY $SRC $DST
+          - pattern: ADD $SRC $DST
+      - metavariable-regex:
+          metavariable: $SRC
+          regex: ^(\.|\./|\*)$
+    message: >-
+      Copying the whole build context invalidates the layer cache on any file
+      change, so a one-line edit forces dependency installation to run again and
+      every replica re-pulls the changed layers. It also drags in whatever is
+      lying around: `.git`, `.env`, local `node_modules`, test fixtures. Copy the
+      dependency manifests first, install, then copy source, and keep a
+      `.dockerignore` that excludes VCS metadata and local secrets.
+    languages:
+      - dockerfile
+    severity: WARNING
+    metadata:
+      category: performance
+      subcategory:
+        - audit
+      cloud-antipattern: image-hygiene
+      technology:
+        - docker
+        - dockerfile
+      confidence: HIGH
+      likelihood: HIGH
+      impact: MEDIUM
+      references:
+        - https://docs.docker.com/build/cache/optimize/
+      license: MIT

@@ -1,0 +1,36 @@
+rules:
+  - id: unpinned-base-image
+    patterns:
+      - pattern-not: FROM $IMAGE@$DIGEST
+      - pattern-either:
+          - pattern: FROM $IMAGE:latest
+          - patterns:
+              - pattern: FROM $IMAGE
+              - pattern-not: FROM $IMAGE:$TAG
+    message: >-
+      Base image is unpinned, either implicitly `:latest` or with no tag at all.
+      The image you build today and the one you rebuild during an incident can be
+      different, so a rollback does not actually roll back and a failure is not
+      reproducible. Pin to an explicit version, and to a digest
+      (`python:3.12-slim@sha256:...`) when you need the build to be truly
+      repeatable. Automate the bumps with Dependabot or Renovate.
+    languages:
+      - dockerfile
+    severity: WARNING
+    metadata:
+      category: portability
+      subcategory:
+        - audit
+      cloud-antipattern: configuration
+      twelve-factor:
+        - i-codebase
+        - x-dev-prod-parity
+      technology:
+        - docker
+        - dockerfile
+      confidence: HIGH
+      likelihood: HIGH
+      impact: MEDIUM
+      references:
+        - https://docs.docker.com/build/building/best-practices/
+      license: MIT

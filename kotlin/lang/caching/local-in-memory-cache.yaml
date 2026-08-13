@@ -1,0 +1,34 @@
+rules:
+  - id: local-in-memory-cache
+    pattern-either:
+      - pattern: Caffeine.newBuilder()
+      - pattern: CacheBuilder.newBuilder()
+      - pattern: LruCache(...)
+      - pattern: ConcurrentMapCacheManager(...)
+      - pattern: CaffeineCacheManager(...)
+    message: >-
+      Process-local cache. Each replica warms and evicts its own copy, so the
+      effective hit rate falls as you scale out, every new pod starts cold against
+      the origin, and invalidating a key on one instance leaves the others serving
+      stale data. Use a shared cache (Redis via Lettuce or Jedis, or Memcached), or
+      keep the local cache strictly as a short-TTL front for a shared one.
+    languages:
+      - kotlin
+    severity: WARNING
+    metadata:
+      category: portability
+      subcategory:
+        - audit
+      cloud-antipattern: caching
+      twelve-factor:
+        - iv-backing-services
+      technology:
+        - kotlin
+        - caffeine
+        - guava
+      confidence: MEDIUM
+      likelihood: HIGH
+      impact: MEDIUM
+      references:
+        - https://12factor.net/backing-services
+      license: MIT

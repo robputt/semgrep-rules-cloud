@@ -1,0 +1,35 @@
+rules:
+  - id: in-process-memory-cache
+    pattern-either:
+      - pattern: $SERVICES.AddMemoryCache(...)
+      - pattern: $SERVICES.AddDistributedMemoryCache(...)
+      - pattern: new MemoryCache(...) { ... }
+      - pattern: new MemoryDistributedCache(...) { ... }
+    message: >-
+      Cache lives in this process's heap. `AddDistributedMemoryCache` is
+      especially misleading: it satisfies the `IDistributedCache` interface but
+      stores everything locally, so nothing is actually distributed. Each replica
+      warms and evicts independently, the hit rate falls as you scale out, and
+      evicting a key on one instance leaves the others serving stale data. Register
+      a real shared backend with `AddStackExchangeRedisCache` or
+      `AddSqlServerCache`.
+    languages:
+      - csharp
+    severity: WARNING
+    metadata:
+      category: portability
+      subcategory:
+        - audit
+      cloud-antipattern: caching
+      twelve-factor:
+        - iv-backing-services
+      technology:
+        - csharp
+        - dotnet
+        - aspnetcore
+      confidence: HIGH
+      likelihood: HIGH
+      impact: MEDIUM
+      references:
+        - https://learn.microsoft.com/en-us/aspnet/core/performance/caching/distributed
+      license: MIT

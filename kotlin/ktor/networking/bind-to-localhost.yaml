@@ -1,0 +1,34 @@
+rules:
+  - id: bind-to-localhost
+    patterns:
+      - pattern-either:
+          - pattern: embeddedServer(..., host = $HOST, ...)
+          - pattern: $CONFIG.host = $HOST
+      - metavariable-regex:
+          metavariable: $HOST
+          regex: ^"(127\.0\.0\.1|localhost|::1)"$
+    message: >-
+      Ktor binds to $HOST, so it only accepts connections from inside the
+      container's own network namespace. Kubernetes probes, Service traffic and
+      load balancer health checks arrive on the pod IP and get connection refused,
+      which usually presents as a container that never becomes ready. Bind to
+      `0.0.0.0` and restrict access with network policy or security groups.
+    languages:
+      - kotlin
+    severity: ERROR
+    metadata:
+      category: correctness
+      subcategory:
+        - audit
+      cloud-antipattern: networking
+      twelve-factor:
+        - vii-port-binding
+      technology:
+        - kotlin
+        - ktor
+      confidence: HIGH
+      likelihood: MEDIUM
+      impact: HIGH
+      references:
+        - https://12factor.net/port-binding
+      license: MIT

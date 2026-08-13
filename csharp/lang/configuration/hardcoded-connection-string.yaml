@@ -1,0 +1,40 @@
+rules:
+  - id: hardcoded-connection-string
+    patterns:
+      - pattern-either:
+          - pattern: $TYPE $VAR = $CONN;
+          - pattern: $VAR = $CONN;
+          - pattern: $METHOD(..., $CONN, ...);
+          - pattern: new $CLASS(..., $CONN, ...)
+          - pattern: return $CONN;
+      - metavariable-regex:
+          metavariable: $CONN
+          regex: (?i)^"([^"]*\b(server|data source|host)=[^"]*\b(password|pwd)=[^"]*|(postgres(ql)?|mysql|mongodb(\+srv)?|redis(s)?|amqps?|sqlserver)://[^"]+|[^"]*\b(accountkey|sharedaccesskey)=[^"]+)"$
+    message: >-
+      Hardcoded connection string. The endpoint and credentials differ per
+      environment, so the same build cannot be promoted from staging to
+      production, and the credential is now in version control and in every
+      published image. Bind it from configuration instead
+      (`IConfiguration.GetConnectionString`) sourced from environment variables,
+      Azure Key Vault or AWS Secrets Manager, and prefer managed identity so
+      there is no secret to store.
+    languages:
+      - csharp
+    severity: ERROR
+    metadata:
+      category: portability
+      subcategory:
+        - audit
+      cloud-antipattern: configuration
+      twelve-factor:
+        - iii-config
+        - iv-backing-services
+      technology:
+        - csharp
+        - dotnet
+      confidence: HIGH
+      likelihood: HIGH
+      impact: HIGH
+      references:
+        - https://12factor.net/config
+      license: MIT

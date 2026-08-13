@@ -1,0 +1,49 @@
+rules:
+  - id: package-cache-retained
+    pattern-either:
+      - patterns:
+          - pattern-either:
+              - pattern: RUN pip install ...
+              - pattern: RUN pip3 install ...
+              - pattern: RUN python -m pip install ...
+          - pattern-not: RUN ... --no-cache-dir ...
+          # BuildKit mount flags are not addressable as patterns, so filter the
+          # matched text instead.
+          - pattern-not-regex: --mount=type=cache
+      - patterns:
+          - pattern-either:
+              - pattern: RUN npm install ...
+              - pattern: RUN npm ci ...
+              - pattern: RUN yarn install ...
+          - pattern-not: RUN ... npm cache clean ...
+          - pattern-not: RUN ... yarn cache clean ...
+          - pattern-not-regex: --mount=type=cache
+      - patterns:
+          - pattern: RUN apk add ...
+          - pattern-not: RUN ... --no-cache ...
+          - pattern-not: RUN ... rm -rf /var/cache/apk/* ...
+          - pattern-not-regex: --mount=type=cache
+    message: >-
+      The package manager's download cache is left behind in the layer. It is dead
+      weight at runtime, and because layers are immutable a later `rm -rf` cannot
+      reclaim it, so every replica pays the extra bytes on pull. Use
+      `pip install --no-cache-dir`, `apk add --no-cache`, or a BuildKit cache mount
+      (`RUN --mount=type=cache,target=/root/.cache/pip ...`) which keeps the cache
+      out of the image while still making rebuilds fast.
+    languages:
+      - dockerfile
+    severity: INFO
+    metadata:
+      category: performance
+      subcategory:
+        - audit
+      cloud-antipattern: image-hygiene
+      technology:
+        - docker
+        - dockerfile
+      confidence: HIGH
+      likelihood: HIGH
+      impact: LOW
+      references:
+        - https://docs.docker.com/build/cache/optimize/
+      license: MIT

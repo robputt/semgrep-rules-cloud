@@ -1,0 +1,36 @@
+rules:
+  - id: injectable-mutable-state
+    patterns:
+      - pattern-either:
+          - pattern: "@Injectable() class $C { $NAME = new Map(...); ... }"
+          - pattern: "@Injectable() class $C { $NAME = new Set(...); ... }"
+          - pattern: "@Injectable() class $C { $NAME = []; ... }"
+          - pattern: "@Injectable() class $C { $NAME = {}; ... }"
+          - pattern: "@Injectable() class $C { $NAME = 0; ... }"
+      - focus-metavariable: $NAME
+    message: >-
+      `@Injectable()` providers are singleton-scoped by default in NestJS, so
+      `$NAME` is shared by every request this instance handles for the lifetime of
+      the process, not per request. Each replica keeps a different value and loses it
+      on restart, which makes behaviour depend on which pod answered. Keep providers
+      stateless and put shared state in Redis or the database. If the value really is
+      per request, use `@Injectable({ scope: Scope.REQUEST })` instead.
+    languages:
+      - typescript
+    severity: WARNING
+    metadata:
+      category: portability
+      subcategory:
+        - audit
+      cloud-antipattern: statefulness
+      twelve-factor:
+        - vi-processes
+      technology:
+        - typescript
+        - nestjs
+      confidence: MEDIUM
+      likelihood: MEDIUM
+      impact: HIGH
+      references:
+        - https://docs.nestjs.com/fundamentals/injection-scopes
+      license: MIT

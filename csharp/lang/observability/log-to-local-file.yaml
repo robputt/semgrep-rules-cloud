@@ -1,0 +1,37 @@
+rules:
+  - id: log-to-local-file
+    pattern-either:
+      - pattern: $X.WriteTo.File(...)
+      - pattern: $X.WriteTo.RollingFile(...)
+      - pattern: $X.AddFile(...)
+      # `new T(...) { ... }` also matches the plain and object-initializer forms.
+      - pattern: new FileTarget(...) { ... }
+      - pattern: new RollingFileAppender(...) { ... }
+      - pattern: new FileAppender(...) { ... }
+    message: >-
+      Logs are written to a file inside the container. Nothing collects them there
+      and they are destroyed with the container, so an incident loses its evidence
+      exactly when you need it. Treat logs as an event stream: write structured
+      records to stdout (`WriteTo.Console(new CompactJsonFormatter())`) and let the
+      platform route them to Application Insights, CloudWatch or Cloud Logging.
+    languages:
+      - csharp
+    severity: WARNING
+    metadata:
+      category: best-practice
+      subcategory:
+        - audit
+      cloud-antipattern: observability
+      twelve-factor:
+        - xi-logs
+      technology:
+        - csharp
+        - dotnet
+        - serilog
+        - nlog
+      confidence: HIGH
+      likelihood: HIGH
+      impact: MEDIUM
+      references:
+        - https://12factor.net/logs
+      license: MIT

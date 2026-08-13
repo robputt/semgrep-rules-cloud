@@ -1,0 +1,38 @@
+rules:
+  - id: apt-cache-not-cleaned
+    patterns:
+      - pattern-either:
+          - pattern: RUN apt-get install ...
+          - pattern: RUN apt install ...
+      - pattern-not: RUN ... rm -rf /var/lib/apt/lists/*
+      - pattern-not: RUN ... rm -rf /var/lib/apt/lists
+      - pattern-not: RUN ... apt-get clean ...
+      # BuildKit mount flags are not addressable as patterns, so filter the
+      # matched text instead.
+      - pattern-not-regex: --mount=type=cache
+    message: >-
+      The apt package lists are left in the layer, typically adding tens of
+      megabytes that nothing at runtime uses. Because layers are immutable, a
+      later `RUN rm -rf` does not reclaim it. That cost is paid on every image
+      pull, which shows up as slower rollouts, slower scale-out and higher
+      registry egress. Clean up in the same `RUN`:
+      `apt-get update && apt-get install -y --no-install-recommends PKG && rm -rf
+      /var/lib/apt/lists/*`.
+    languages:
+      - dockerfile
+    severity: WARNING
+    metadata:
+      category: performance
+      subcategory:
+        - audit
+      cloud-antipattern: image-hygiene
+      technology:
+        - docker
+        - dockerfile
+        - debian
+      confidence: HIGH
+      likelihood: HIGH
+      impact: LOW
+      references:
+        - https://docs.docker.com/build/building/best-practices/#apt-get
+      license: MIT

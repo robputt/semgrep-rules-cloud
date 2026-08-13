@@ -1,0 +1,48 @@
+rules:
+  - id: top-level-mutable-state
+    patterns:
+      # Generic type arguments are not addressable in Kotlin patterns, but a
+      # non-generic call pattern still matches `mutableMapOf<String, String>()`.
+      - pattern-either:
+          - pattern: val $NAME = mutableMapOf()
+          - pattern: val $NAME = mutableListOf()
+          - pattern: val $NAME = mutableSetOf()
+          - pattern: val $NAME = ConcurrentHashMap()
+          - pattern: val $NAME = HashMap()
+          - pattern: val $NAME = HashSet()
+          - pattern: val $NAME = ArrayList()
+          - pattern: val $NAME = CopyOnWriteArrayList()
+          - pattern: var $NAME = mutableMapOf()
+          - pattern: var $NAME = mutableListOf()
+          - pattern: var $NAME = mutableSetOf()
+      # `class $C` matches the whole class declaration, so this excludes
+      # per-instance properties while still flagging `object` singletons.
+      - pattern-not-inside: class $C
+      - pattern-not-inside: |
+          fun $F(...) { ... }
+    message: >-
+      Top-level or `object` singleton mutable collection `$NAME` is process state.
+      Each replica holds its own copy and loses it on restart or rescheduling, so
+      results depend on which instance served the request. It is also unsynchronised
+      unless every access is guarded, which is a data race under concurrent
+      handlers. Move it to a shared backing service (Redis, the database, a managed
+      queue).
+    languages:
+      - kotlin
+    severity: WARNING
+    metadata:
+      category: portability
+      subcategory:
+        - audit
+      cloud-antipattern: statefulness
+      twelve-factor:
+        - vi-processes
+        - viii-concurrency
+      technology:
+        - kotlin
+      confidence: LOW
+      likelihood: MEDIUM
+      impact: HIGH
+      references:
+        - https://12factor.net/processes
+      license: MIT

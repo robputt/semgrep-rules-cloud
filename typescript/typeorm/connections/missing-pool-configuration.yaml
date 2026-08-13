@@ -1,0 +1,37 @@
+rules:
+  - id: missing-pool-configuration
+    patterns:
+      - pattern-either:
+          - pattern: new DataSource({...})
+          - pattern: "TypeOrmModule.forRoot({...})"
+      - pattern-not: "new DataSource({..., extra: {..., max: $MAX, ...}, ...})"
+      - pattern-not: "new DataSource({..., poolSize: $SIZE, ...})"
+      - pattern-not: "TypeOrmModule.forRoot({..., extra: {..., max: $MAX, ...}, ...})"
+      - pattern-not: "TypeOrmModule.forRoot({..., poolSize: $SIZE, ...})"
+    message: >-
+      DataSource created without a pool bound, so the driver default applies (10 for
+      `node-postgres`). Multiplied across replicas that either exceeds the database's
+      connection limit or starves the app under load, and there is nothing capping
+      growth during a traffic spike. Set `poolSize` (or `extra.max` for driver-level
+      control), sized as (database connection limit / expected replica count), and
+      consider a server-side pooler such as PgBouncer or RDS Proxy in front.
+    languages:
+      - typescript
+    severity: WARNING
+    metadata:
+      category: performance
+      subcategory:
+        - audit
+      cloud-antipattern: connection-management
+      twelve-factor:
+        - iv-backing-services
+      technology:
+        - typescript
+        - typeorm
+        - nestjs
+      confidence: MEDIUM
+      likelihood: HIGH
+      impact: HIGH
+      references:
+        - https://typeorm.io/data-source-options
+      license: MIT

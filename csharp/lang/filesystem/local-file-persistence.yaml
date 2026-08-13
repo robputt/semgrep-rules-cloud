@@ -1,0 +1,43 @@
+rules:
+  - id: local-file-persistence
+    patterns:
+      - pattern-either:
+          - pattern: File.WriteAllText($PATH, ...)
+          - pattern: File.WriteAllBytes($PATH, ...)
+          - pattern: File.WriteAllLines($PATH, ...)
+          - pattern: File.AppendAllText($PATH, ...)
+          - pattern: File.Create($PATH, ...)
+          - pattern: File.Copy($SRC, $PATH, ...)
+          - pattern: Directory.CreateDirectory($PATH)
+          - pattern: new StreamWriter($PATH, ...)
+          - pattern: new FileStream($PATH, ...)
+      - metavariable-regex:
+          metavariable: $PATH
+          regex: ^"(\./|\.\./|/tmp/|/var/tmp/|/data|C:\\\\|[A-Za-z0-9_\-]+[/\\\\])
+    message: >-
+      Writing to the container's local filesystem at $PATH. That disk is not shared
+      with other replicas and is destroyed when the container is replaced, so
+      uploads served by one instance 404 from the next and anything durable is
+      silently lost on the next deploy. Write to object storage (Azure Blob, S3) or
+      the database, and reserve local disk for scratch data via
+      `Path.GetTempPath()`.
+    languages:
+      - csharp
+    severity: WARNING
+    metadata:
+      category: portability
+      subcategory:
+        - audit
+      cloud-antipattern: filesystem
+      twelve-factor:
+        - iv-backing-services
+        - vi-processes
+      technology:
+        - csharp
+        - dotnet
+      confidence: MEDIUM
+      likelihood: MEDIUM
+      impact: HIGH
+      references:
+        - https://12factor.net/processes
+      license: MIT

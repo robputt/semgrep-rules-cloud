@@ -1,0 +1,40 @@
+rules:
+  - id: bind-to-localhost
+    pattern-either:
+      - pattern: $OPTIONS.ListenLocalhost(...)
+      - patterns:
+          - pattern-either:
+              - pattern: $HOST.UseUrls($URL, ...)
+              - pattern: $APP.Run($URL)
+              - pattern: $X.UseSetting("urls", $URL)
+          - metavariable-regex:
+              metavariable: $URL
+              regex: (?i)^"https?://(localhost|127\.0\.0\.1|\[::1\])(:[0-9]+)?/?"$
+    message: >-
+      Kestrel is bound to the loopback interface, so it only accepts connections
+      from inside the container's own network namespace. Kubernetes probes, Service
+      traffic and load balancer health checks arrive on the pod IP and get
+      connection refused, which usually presents as a container that never becomes
+      ready. Bind to `http://0.0.0.0:8080` (or `http://+:8080`, or set
+      `ASPNETCORE_URLS`) and restrict access with network policy.
+    languages:
+      - csharp
+    severity: ERROR
+    metadata:
+      category: correctness
+      subcategory:
+        - audit
+      cloud-antipattern: networking
+      twelve-factor:
+        - vii-port-binding
+      technology:
+        - csharp
+        - dotnet
+        - aspnetcore
+        - kestrel
+      confidence: HIGH
+      likelihood: MEDIUM
+      impact: HIGH
+      references:
+        - https://12factor.net/port-binding
+      license: MIT

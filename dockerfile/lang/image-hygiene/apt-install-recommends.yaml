@@ -1,0 +1,31 @@
+rules:
+  - id: apt-install-recommends
+    patterns:
+      - pattern-either:
+          - pattern: RUN apt-get install ...
+          - pattern: RUN apt install ...
+      - pattern-not: RUN ... --no-install-recommends ...
+      - pattern-not: RUN ... --no-install-suggests ...
+    message: >-
+      `apt-get install` without `--no-install-recommends` pulls in recommended
+      packages you did not ask for, which routinely doubles image size and drags in
+      extra binaries that a vulnerability scanner will then report against you.
+      Add `--no-install-recommends` and list what you actually need.
+    languages:
+      - dockerfile
+    severity: WARNING
+    metadata:
+      category: performance
+      subcategory:
+        - audit
+      cloud-antipattern: image-hygiene
+      technology:
+        - docker
+        - dockerfile
+        - debian
+      confidence: HIGH
+      likelihood: HIGH
+      impact: LOW
+      references:
+        - https://docs.docker.com/build/building/best-practices/#apt-get
+      license: MIT

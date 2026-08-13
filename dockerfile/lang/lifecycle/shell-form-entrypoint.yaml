@@ -1,0 +1,35 @@
+rules:
+  - id: shell-form-entrypoint
+    patterns:
+      - pattern-either:
+          - pattern: CMD ...
+          - pattern: ENTRYPOINT ...
+      - pattern-not: CMD [...]
+      - pattern-not: ENTRYPOINT [...]
+    message: >-
+      Shell form starts the process under `/bin/sh -c`, so PID 1 is the shell and
+      your application is a child. `sh` does not forward SIGTERM, so on every
+      deploy, scale-in or node drain the app never learns it is being stopped: it
+      keeps serving until the grace period expires and is then SIGKILLed, dropping
+      in-flight requests. Use exec form, `CMD ["python", "app.py"]`, so the
+      application is PID 1 and receives signals directly.
+    languages:
+      - dockerfile
+    severity: ERROR
+    metadata:
+      category: correctness
+      subcategory:
+        - audit
+      cloud-antipattern: lifecycle
+      twelve-factor:
+        - ix-disposability
+      technology:
+        - docker
+        - dockerfile
+        - kubernetes
+      confidence: HIGH
+      likelihood: HIGH
+      impact: HIGH
+      references:
+        - https://docs.docker.com/reference/dockerfile/#entrypoint
+      license: MIT

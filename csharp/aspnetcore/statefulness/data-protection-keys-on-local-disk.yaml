@@ -1,0 +1,39 @@
+rules:
+  - id: data-protection-keys-on-local-disk
+    pattern-either:
+      - pattern: $X.PersistKeysToFileSystem(...)
+      - pattern: $X.AddDataProtection(...).PersistKeysToFileSystem(...)
+      - patterns:
+          - pattern: $SERVICES.AddSession(...)
+          - pattern-not-inside: |
+              $S.AddStackExchangeRedisCache(...);
+              ...
+    message: >-
+      Session or Data Protection state is kept per instance. Data Protection keys
+      written to the container filesystem are generated fresh in each replica and
+      lost on restart, so auth cookies and antiforgery tokens issued by one pod are
+      rejected by the next: users get random logouts and 400s on form posts.
+      Sessions registered without a shared `IDistributedCache` behave the same way.
+      Persist keys to a shared store (`PersistKeysToStackExchangeRedis`,
+      `PersistKeysToAzureBlobStorage`, or `PersistKeysToDbContext`) and protect them
+      with a KMS key, and back sessions with Redis.
+    languages:
+      - csharp
+    severity: ERROR
+    metadata:
+      category: portability
+      subcategory:
+        - audit
+      cloud-antipattern: statefulness
+      twelve-factor:
+        - vi-processes
+      technology:
+        - csharp
+        - dotnet
+        - aspnetcore
+      confidence: MEDIUM
+      likelihood: HIGH
+      impact: HIGH
+      references:
+        - https://learn.microsoft.com/en-us/aspnet/core/security/data-protection/configuration/overview
+      license: MIT

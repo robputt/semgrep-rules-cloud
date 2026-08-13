@@ -1,0 +1,38 @@
+rules:
+  - id: in-process-scheduler
+    pattern-either:
+      - pattern: new System.Threading.Timer(...) { ... }
+      - pattern: new System.Timers.Timer(...) { ... }
+      - pattern: new Timer(...) { ... }
+      - pattern: $X.UseMemoryStorage(...)
+      - pattern: $X.AddHangfire(...).UseMemoryStorage(...)
+      - pattern: RecurringJob.AddOrUpdate(...)
+    message: >-
+      Periodic work scheduled inside the application process. Every replica runs the
+      same timer, so a job meant to fire once fires once per instance, and nothing
+      fires at all during a rolling deploy or when scaled to zero. Hangfire's
+      in-memory storage additionally loses the queue on restart. Move the trigger
+      outside the process (Kubernetes CronJob, EventBridge Scheduler, Azure
+      Functions timer) so exactly one execution is dispatched, or take a distributed
+      lock before doing the work.
+    languages:
+      - csharp
+    severity: WARNING
+    metadata:
+      category: correctness
+      subcategory:
+        - audit
+      cloud-antipattern: scheduling
+      twelve-factor:
+        - viii-concurrency
+        - xii-admin-processes
+      technology:
+        - csharp
+        - dotnet
+        - hangfire
+      confidence: LOW
+      likelihood: HIGH
+      impact: HIGH
+      references:
+        - https://12factor.net/concurrency
+      license: MIT

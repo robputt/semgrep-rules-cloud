@@ -1,5 +1,5 @@
 SEMGREP ?= ./venv/bin/semgrep
-LANG_DIRS := python javascript java go
+LANG_DIRS := python javascript typescript java csharp kotlin go dockerfile
 
 .PHONY: help test validate scan stats clean
 
@@ -27,6 +27,15 @@ scan:
 	@set -e; for dir in $(LANG_DIRS); do \
 		$(SEMGREP) --config "$$dir" --metrics off "$(TARGET)"; \
 	done
+
+# Semgrep only recognises `Dockerfile`, `*.dockerfile` and `Containerfile`.
+# Variants like `Dockerfile.prod` need to be named explicitly together with
+# --scan-unknown-extensions.
+scan-dockerfiles:
+	@files=$$(find "$(TARGET)" \( -name 'Dockerfile*' -o -name '*.dockerfile' \
+		-o -name 'Containerfile*' \) -not -path '*/venv/*' -not -path '*/.git/*'); \
+	if [ -z "$$files" ]; then echo "no Dockerfiles under $(TARGET)"; exit 0; fi; \
+	$(SEMGREP) --config dockerfile --metrics off --scan-unknown-extensions $$files
 
 stats:
 	@echo "rules per language:"

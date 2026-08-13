@@ -1,0 +1,41 @@
+rules:
+  - id: local-file-persistence
+    patterns:
+      - pattern-either:
+          - pattern: File($PATH).writeText(...)
+          - pattern: File($PATH).writeBytes(...)
+          - pattern: File($PATH).appendText(...)
+          - pattern: File($PATH).outputStream()
+          - pattern: File($PATH).mkdirs()
+          - pattern: File($PATH).mkdir()
+          - pattern: File($PATH).printWriter()
+          - pattern: File($PATH).bufferedWriter()
+          - pattern: Paths.get($PATH)
+      - metavariable-regex:
+          metavariable: $PATH
+          regex: ^"(\./|\.\./|/tmp/|/var/tmp/|/data|data/|uploads|reports|logs|cache)
+    message: >-
+      Writing to the container's local filesystem at $PATH. That disk is not shared
+      between replicas and is destroyed when the container is replaced, so files
+      written by one pod are missing from the next and anything durable is silently
+      lost on deploy. Write to object storage (S3, GCS, Azure Blob) or the database,
+      and use `Files.createTempDirectory` when you genuinely need scratch space.
+    languages:
+      - kotlin
+    severity: WARNING
+    metadata:
+      category: portability
+      subcategory:
+        - audit
+      cloud-antipattern: filesystem
+      twelve-factor:
+        - iv-backing-services
+        - vi-processes
+      technology:
+        - kotlin
+      confidence: MEDIUM
+      likelihood: MEDIUM
+      impact: HIGH
+      references:
+        - https://12factor.net/processes
+      license: MIT

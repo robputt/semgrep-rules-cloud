@@ -1,0 +1,35 @@
+rules:
+  - id: pipe-download-to-shell
+    pattern-either:
+      - pattern: RUN ... curl ... | sh ...
+      - pattern: RUN ... curl ... | bash ...
+      - pattern: RUN ... wget ... | sh ...
+      - pattern: RUN ... wget ... | bash ...
+    message: >-
+      Downloading a script and piping it straight into a shell. Whatever the
+      endpoint serves at build time is executed unverified, so the build is not
+      reproducible and a compromised or hijacked URL runs arbitrary code inside
+      your image. Download to a file, verify a pinned checksum or signature, then
+      execute it. Better still, install a pinned package from the distribution's
+      package manager.
+    languages:
+      - dockerfile
+    severity: ERROR
+    metadata:
+      category: security
+      subcategory:
+        - audit
+      cwe:
+        - "CWE-494: Download of Code Without Integrity Check"
+      cloud-antipattern: image-hygiene
+      twelve-factor:
+        - i-codebase
+      technology:
+        - docker
+        - dockerfile
+      confidence: HIGH
+      likelihood: MEDIUM
+      impact: HIGH
+      references:
+        - https://docs.docker.com/build/building/best-practices/
+      license: MIT

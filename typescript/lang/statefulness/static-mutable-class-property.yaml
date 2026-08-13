@@ -1,0 +1,37 @@
+rules:
+  - id: static-mutable-class-property
+    patterns:
+      # Class members do not parse as standalone patterns, so match the class and
+      # narrow the reported range with focus-metavariable.
+      - pattern-either:
+          - pattern: "class $C { static $NAME = new Map(...); ... }"
+          - pattern: "class $C { static $NAME = new Set(...); ... }"
+          - pattern: "class $C { static $NAME = new WeakMap(...); ... }"
+          - pattern: "class $C { static $NAME = []; ... }"
+          - pattern: "class $C { static $NAME = {}; ... }"
+      - focus-metavariable: $NAME
+    message: >-
+      Static class property `$NAME` is process-wide mutable state shared by every
+      request this instance serves. Each replica keeps its own copy, so reads are
+      inconsistent between pods and the contents vanish on the next deploy. It also
+      grows unbounded unless something evicts, which eventually trips the container
+      memory limit. Move it to Redis or the database.
+    languages:
+      - typescript
+    severity: WARNING
+    metadata:
+      category: portability
+      subcategory:
+        - audit
+      cloud-antipattern: statefulness
+      twelve-factor:
+        - vi-processes
+        - viii-concurrency
+      technology:
+        - typescript
+      confidence: MEDIUM
+      likelihood: MEDIUM
+      impact: HIGH
+      references:
+        - https://12factor.net/processes
+      license: MIT

@@ -1,0 +1,33 @@
+rules:
+  - id: remote-add
+    patterns:
+      - pattern: ADD $SRC $DST
+      - metavariable-regex:
+          metavariable: $SRC
+          regex: (?i)^(https?|ftp)://
+    message: >-
+      `ADD` fetches `$SRC` over the network during the build. The remote content
+      can change or disappear, so the build is neither reproducible nor offline
+      capable, and there is no integrity check on what lands in the image. Fetch it
+      in a `RUN` with an explicit checksum verification, or vendor the artefact and
+      `COPY` it in.
+    languages:
+      - dockerfile
+    severity: WARNING
+    metadata:
+      category: portability
+      subcategory:
+        - audit
+      cloud-antipattern: image-hygiene
+      twelve-factor:
+        - i-codebase
+        - x-dev-prod-parity
+      technology:
+        - docker
+        - dockerfile
+      confidence: HIGH
+      likelihood: MEDIUM
+      impact: MEDIUM
+      references:
+        - https://docs.docker.com/build/building/best-practices/#add-or-copy
+      license: MIT
